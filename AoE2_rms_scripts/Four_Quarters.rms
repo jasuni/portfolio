@@ -1,0 +1,648 @@
+/*
+idea for this map is to divide player bases (and the entire map) into four sections: a water section with fish for players to gather from and mangrove forests. A gold section that contains a lot of gold. A stone section with an abundance of stone. A food section with all sorts of food (excluding fish). Each player will start with a TC in each section, making for a total of 4 TCs. Sections are divided by forest, and each section will have different strategic importance. Should be an extreme test of player micro.
+
+playtesting notes: haven't gotten a good sense for how the map plays yet. I think that I might want to add a few food resources to the other sections, however, since that still provides a bit of an issue at the start of the game.
+I think that I'm going to recommend playing on Medium starting resources for this map (starting food is gone so fast, and wood is not much better)
+
+Double cup game notes: I think I underestimated the importance of stone. Each quarter only gets an avg of 50 pop, so castle drops are rather effective (especially if the units guarding the castle during construction are sent on a suicide raid afterwards to clear up pop space). Perhaps reduce gold in the other areas by one tile and add a small stone mine? (or maybe a larger one just to the gold area?)
+    Players aged to feudal around 70-80 vils (around 70: ~80 was with fishing ships)
+    low pop-space might be limiting archer balls (so cavalry is better). Also devalues use of trash units (so less likely to encounter spears/skirms). This means that strong cavalry civs are a solid pick
+
+    Second game: winner was later to collect stone, but denied multiple castle drops. Players didn't work through the gold piles in each quadrant, so less gold in other quadrants would be helpful (perhaps even 3 piles?).
+        both games ended in castle, with first player losing a quadrant losing the match (though I do think that it is still theoretically possible for a player to lose one quadrant but take ground back by winning another quadrant. Game two had the possibility of that)
+
+    One suggestion: make a 1v4 version for battles against AI
+*/
+<PLAYER_SETUP>
+behavior_version 2
+direct_placement
+
+
+/* randomly determine player orientation in each of the 4 areas */
+start_random
+    percent_chance 50 #define MANGROVE_A
+end_random
+start_random
+    percent_chance 50 #define GRASS_A
+end_random
+start_random
+    percent_chance 50 #define GRAVEL_A
+end_random
+start_random
+    percent_chance 50 #define DESERT_A
+end_random
+
+<LAND_GENERATION>
+#const GRAVEL 70
+#const WATER_BROWN 96
+#const WATER_GREEN 95
+#const FOREST_OAK_BUSH 20
+
+base_terrain FOREST_OAK_BUSH
+
+create_land {
+    terrain_type DLC_MANGROVESHALLOW
+    top_border 57
+    right_border 57
+    bottom_border -10
+    land_percent 50
+    land_position 10 65
+    if MANGROVE_A
+        assign_to AT_PLAYER 1 0 2
+    else
+        assign_to AT_PLAYER 2 0 2
+    endif
+    /*
+    land_id 1 */
+}
+create_land {
+    terrain_type DLC_MANGROVESHALLOW
+    top_border 57
+    right_border 57
+    bottom_border -10
+    land_percent 50
+    land_position 35 90
+    if MANGROVE_A
+        assign_to AT_PLAYER 2 0 2
+    else
+        assign_to AT_PLAYER 1 0 2
+    endif
+    /*
+    land_id 1 */
+}
+
+
+create_land {
+    terrain_type GRAVEL
+    bottom_border 57
+    right_border 57
+    top_border -10
+    base_elevation 2
+    land_percent 50
+    land_position 35 10
+    if DESERT_A
+        assign_to AT_PLAYER 1 0 2
+    else
+        assign_to AT_PLAYER 2 0 2
+    endif
+}
+create_land {
+    terrain_type GRAVEL
+    bottom_border 57
+    right_border 57
+    top_border -10
+    base_elevation 2
+    land_percent 50
+    land_position 10 35
+    if DESERT_A
+        assign_to AT_PLAYER 2 0 2
+    else
+        assign_to AT_PLAYER 1 0 2
+    endif
+}
+create_land {
+    terrain_type DLC_DESERTGRAVEL
+    top_border 57
+    left_border 57
+    bottom_border -10
+    /*  base_elevation 1 TODO inverse so that all other terrains are higher */
+    land_percent 50
+    land_position 65 90
+    if GRAVEL_A
+        assign_to AT_PLAYER 1 0 2
+    else
+        assign_to AT_PLAYER 2 0 2
+    endif
+}
+create_land {
+    terrain_type DLC_DESERTGRAVEL
+    top_border 57
+    left_border 57
+    bottom_border -10
+    /* base_elevation 1 */
+    land_percent 50
+    land_position 90 65
+    if GRAVEL_A
+        assign_to AT_PLAYER 2 0 2
+    else
+        assign_to AT_PLAYER 1 0 2
+    endif
+}
+/* goal is to allow placement so that DLC_CRACKED terrain may be added, but right now place_on_specific_land_id does not appear to restrict to the eastern quarter.
+try beach wet grave, beach wet rock, or corruption (or black)
+create_land {
+    terrain_type DLC_DESERTGRAVEL
+    land_position 99 99
+    base_elevation 1
+    land_id 4
+}
+*/
+
+create_land {
+    terrain_type GRASS2
+    bottom_border 57
+    left_border 57
+    top_border -10
+    land_percent 50
+    land_position 65 10
+    if GRASS_A
+        assign_to AT_PLAYER 1 0 2
+    else
+        assign_to AT_PLAYER 2 0 2
+    endif
+}
+create_land {
+    terrain_type GRASS2
+    bottom_border 57
+    left_border 57
+    top_border -10
+    land_percent 50
+    land_position 90 35
+    if GRASS_A
+        assign_to AT_PLAYER 2 0 2
+    else
+        assign_to AT_PLAYER 1 0 2
+    endif
+}
+
+<ELEVATION_GENERATION>
+create_elevation 3 {
+    base_terrain GRAVEL
+    number_of_clumps 8
+    number_of_tiles 80
+    enable_balanced_elevation
+    set_scale_by_size
+}
+
+create_elevation 1 {
+    base_terrain DLC_DESERTGRAVEL
+    number_of_clumps 16
+    number_of_tiles 80
+    enable_balanced_elevation
+    set_scale_by_size
+}
+/* TODO bug: there are drops in elevation where the forest meets the treelines, which is not ideal. */
+create_elevation 1 {
+    base_terrain FOREST_OAK_BUSH
+    number_of_clumps 8
+    number_of_tiles 9320
+    enable_balanced_elevation
+    set_scale_by_size
+}
+create_elevation 1 {
+    base_terrain FOREST_OAK_BUSH
+    number_of_clumps 9320
+    number_of_tiles 9320
+    enable_balanced_elevation
+    set_scale_by_size
+    spacing 2
+}
+/*
+<CLIFF_GENERATION>
+max_number_of_cliffs 3
+*/
+
+/* terrain: DLC_MANGROVEFOREST on the mangrove shallow */
+
+<TERRAIN_GENERATION>
+create_terrain DLC_MANGROVEFOREST {
+    base_terrain DLC_MANGROVESHALLOW
+    spacing_to_other_terrain_types 3
+    land_percent 1 /* consider reducing, possibly with number of tiles */
+    number_of_clumps 8
+    set_scale_by_groups
+    set_avoid_player_start_areas 13
+}
+create_terrain DLC_REEDSBEACH {
+    base_terrain DLC_MANGROVESHALLOW
+    spacing_to_other_terrain_types 2
+    /* land_percent 1  -- reducing to 0.5
+    set_scale_by_groups */
+    if TINY_MAP
+        number_of_tiles 72
+    elseif SMALL_MAP
+        number_of_tiles 104
+    elseif MEDIUM_MAP
+        number_of_tiles 141
+    elseif LARGE_MAP
+        number_of_tiles 200
+    elseif HUGE_MAP
+        number_of_tiles 242
+    elseif GIGANTIC_MAP
+        number_of_tiles 288
+    else /* ludikris map */
+        number_of_tiles 1152
+    endif
+    number_of_clumps 12
+    set_avoid_player_start_areas 9
+}
+/* TODO make more visible than DLC_WETBEACH - I suspect the issue is that sometimes the strips are sometimes far too thin, which results in beach becoming practically invisible regardless of what type it is.
+create_terrain DLC_WETBEACH {
+    base_terrain DLC_MANGROVESHALLOW
+    spacing_to_other_terrain_types 5
+    if TINY_MAP
+        number_of_tiles 54
+    elseif SMALL_MAP
+        number_of_tiles 78
+    elseif MEDIUM_MAP
+        number_of_tiles 105
+    elseif LARGE_MAP
+        number_of_tiles 150
+    elseif HUGE_MAP
+        number_of_tiles 181
+    elseif GIGANTIC_MAP
+        number_of_tiles 216
+    else /* ludikris map */
+        number_of_tiles 864
+    endif
+    number_of_clumps 8
+    set_avoid_player_start_areas 5
+}  */
+
+/* TODO figure out how to add cracked terrain to gold area without breaking the map */
+/* nice appearance, but doesn't fit muddy water all that well
+create_terrain DLC_WATER5 {
+    base_terrain DLC_MANGROVESHALLOW
+    terrain_mask 1
+    land_percent 4
+    number_of_clumps 30
+}
+*/
+create_terrain MUDDY_SHALLOW {
+    base_terrain DLC_MANGROVESHALLOW
+    terrain_mask 1
+    land_percent 6
+    number_of_clumps 40
+}
+create_terrain WATER_BROWN {
+    base_terrain DLC_MANGROVESHALLOW
+    terrain_mask 1
+    land_percent 2
+    number_of_clumps 40
+}
+create_terrain WATER_GREEN {
+    base_terrain DLC_MANGROVESHALLOW
+    terrain_mask 1
+    land_percent 2
+    number_of_clumps 40
+}
+/* TODO add more terrain mixing for the plains quarter */
+create_terrain DLC_MOORLAND {
+    base_terrain GRASS2
+    terrain_mask 1
+    land_percent 1
+    number_of_clumps 60
+    set_avoid_player_start_areas 7
+}
+
+create_terrain DLC_JUNGLEGRASS {
+    base_terrain GRASS2
+    terrain_mask 1
+    land_percent 5
+    number_of_clumps 20
+}
+create_terrain FOREST {
+    base_terrain FOREST_OAK_BUSH
+    land_percent 100
+    number_of_clumps 5
+    spacing_to_other_terrain_types 1
+}
+
+create_terrain FOREST_OAK_BUSH {
+    base_terrain FOREST
+    land_percent 5
+    number_of_clumps 500
+}
+#const LIGHT_SNOW 73
+#const BEACH_WET_GRAVEL 81
+#const BEACH_WET_ROCK 82
+create_terrain LIGHT_SNOW {
+    base_terrain GRAVEL
+    land_percent 11
+    number_of_clumps 500
+    spacing_to_other_terrain_types 1
+    terrain_mask 1
+}
+create_terrain BEACH_WET_GRAVEL {
+    base_terrain DLC_DESERTGRAVEL
+    land_percent 8
+    number_of_clumps 99
+    terrain_mask 1
+
+}
+create_terrain BEACH_WET_ROCK {
+    base_terrain DLC_DESERTGRAVEL
+    land_percent 3
+    number_of_clumps 99
+    terrain_mask 1
+}
+
+<OBJECTS_GENERATION>
+create_object TOWN_CENTER {
+    set_place_for_every_player
+    find_closest
+}
+create_object VILLAGER {
+    set_place_for_every_player
+    min_distance_to_players 6
+    max_distance_to_players 6
+}
+if REGICIDE
+    create_object KING {
+        set_place_for_every_player
+        min_distance_to_players 8
+        find_closest
+    }
+else
+    /* Using a horse to emphasize scouting over combat. This will prevent scout fights in the early game.  */
+    create_object HORSE {
+        set_place_for_every_player
+        min_distance_to_players 7
+        max_distance_to_players 9
+    }
+endif
+
+/* mangrove section */
+create_object SALMON {
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 4
+    max_distance_to_players 4
+    temp_min_distance_group_placement 3
+    terrain_to_place_on DLC_MANGROVESHALLOW
+    ignore_terrain_restrictions
+    number_of_objects 6
+    /*
+    second_object SALMON
+    resource_delta -350 */
+}
+
+create_object MARLIN1 {
+    set_gaia_object_only
+    min_distance_to_players 9
+    min_distance_group_placement 2
+    temp_min_distance_group_placement 8
+    terrain_to_place_on DLC_MANGROVESHALLOW
+    number_of_objects 30
+    set_scaling_to_map_size
+    /*
+    ignore_terrain_restrictions
+    place_on_specific_land_id 1 */
+    second_object SALMON
+    resource_delta -350 
+    avoid_forest_zone 1
+}
+create_object DLC_WATERBUFFALO {
+    set_place_for_every_player
+    set_gaia_object_only
+    find_closest
+    max_distance_to_players 9
+    set_loose_grouping
+    terrain_to_place_on DLC_MANGROVESHALLOW
+}
+/* stone section */
+
+#const TRADING_POST 1646
+create_actor_area 0 0 1 0
+/*  copied from relic island
+if TINY_MAP
+    create_actor_area 118 0 2 0
+    create_actor_area 0 118 3 0
+    create_actor_area 118 118 4 0
+elseif SMALL_MAP
+    create_actor_area 142 0 2 0
+    create_actor_area 0 142 3 0
+    create_actor_area 142 142 4 0
+elseif MEDIUM_MAP
+    create_actor_area 166 0 2 0
+    create_actor_area 0 166 3 0
+    create_actor_area 166 166 4 0
+elseif LARGE_MAP
+    create_actor_area 198 0 2 0
+    create_actor_area 0 198 3 0
+    create_actor_area 198 198 4 0
+elseif HUGE_MAP
+    create_actor_area 218 0 2 0
+    create_actor_area 0 218 3 0
+    create_actor_area 218 218 4 0
+elseif GIGANTIC_MAP
+    create_actor_area 238 0 2 0
+    create_actor_area 0 238 3 0
+    create_actor_area 238 238 4 0
+else 
+    create_actor_area 478 0 2 0
+    create_actor_area 0 478 3 0
+    create_actor_area 478 478 4 0
+endif
+*/
+/* neutral market, to create an extra incentive for controlling the stone area, and to reduce the value of the gold area */
+create_object TRADING_POST {
+    actor_area_to_place_in 1 /* stone-area corner */
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_group_placement 6
+}
+create_object STONE {
+    number_of_groups 16
+    number_of_objects 4
+    set_scaling_to_map_size 
+    group_variance 1
+    temp_min_distance_group_placement 10
+    min_distance_group_placement 4
+    min_distance_to_players 9
+    set_tight_grouping
+    terrain_to_place_on GRAVEL
+    avoid_forest_zone 3
+}
+create_object STONE {
+    number_of_groups 2
+    number_of_objects 5
+    temp_min_distance_group_placement 8
+    min_distance_group_placement 4
+    min_distance_to_players 7
+    max_distance_to_players 9
+    set_tight_grouping
+    terrain_to_place_on GRAVEL
+    avoid_forest_zone 3
+    set_place_for_every_player
+    set_gaia_object_only
+}
+create_object DLC_AFRICANBUSH_2 {
+    number_of_objects 2
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 4
+    max_distance_to_players 5
+    terrain_to_place_on GRAVEL
+}
+create_object DLC_AFRICANBUSH_2 {
+    number_of_objects 3
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 6
+    max_distance_to_players 8
+    terrain_to_place_on GRAVEL
+}
+create_object DLC_GOAT {
+    number_of_objects 2
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 5
+    max_distance_to_players 6
+    set_loose_grouping
+    terrain_to_place_on GRAVEL
+}
+/* gold section */
+create_object GOLD {
+    number_of_groups 16
+    number_of_objects 5
+    group_variance 1
+    temp_min_distance_group_placement 10
+    min_distance_group_placement 4
+    min_distance_to_players 8
+    set_tight_grouping
+    avoid_forest_zone 3
+    set_scaling_to_map_size
+    /* place_on_specific_land_id 4  */
+     terrain_to_place_on DLC_DESERTGRAVEL
+}
+
+create_object DLC_AFRICANBUSH {
+    number_of_objects 2
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 4
+    max_distance_to_players 5
+    terrain_to_place_on DLC_DESERTGRAVEL
+}
+
+create_object DLC_AFRICANBUSH {
+    number_of_objects 3
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 6
+    max_distance_to_players 8
+    terrain_to_place_on DLC_DESERTGRAVEL
+}
+
+create_object DLC_GOAT {
+    number_of_objects 2
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 5
+    max_distance_to_players 6
+    set_loose_grouping
+    terrain_to_place_on DLC_DESERTGRAVEL
+}
+/* plains section - lots of food */
+create_object FORAGE {
+    number_of_objects 5
+    group_variance 1
+    number_of_groups 16
+    set_tight_grouping
+    temp_min_distance_group_placement 10
+    min_distance_group_placement 3
+    min_distance_to_players 10
+    set_scaling_to_map_size
+    terrain_to_place_on GRASS2
+    avoid_forest_zone 3
+}
+create_object BOAR {
+    number_of_groups 8
+    temp_min_distance_group_placement 10
+    min_distance_group_placement 1
+    min_distance_to_players 12
+    set_scaling_to_map_size
+    terrain_to_place_on GRASS2
+
+}
+create_object DEER {
+    number_of_objects 4
+    group_variance 1
+    number_of_groups 16
+    temp_min_distance_group_placement 12
+    min_distance_group_placement 2
+    min_distance_to_players 9
+    set_scaling_to_map_size
+    terrain_to_place_on GRASS2
+    avoid_forest_zone 1
+    
+}
+create_object WOLF {
+    number_of_objects 4
+    temp_min_distance_group_placement 16
+    min_distance_group_placement 3
+    min_distance_to_players 16
+    terrain_to_place_on GRASS2
+
+}
+create_object SHEEP {
+    number_of_objects 3
+    group_variance 1
+    number_of_groups 16
+    temp_min_distance_group_placement 14
+    min_distance_group_placement 2
+    min_distance_to_players 13
+    set_scaling_to_map_size
+    terrain_to_place_on GRASS2
+    avoid_forest_zone 1
+}
+/* also a set of close sheep */
+create_object SHEEP {
+    number_of_objects 3
+    number_of_groups 2
+    min_distance_to_players 6
+    max_distance_to_players 9
+    min_distance_group_placement 1
+    set_place_for_every_player
+    set_gaia_object_only
+    temp_min_distance_group_placement 6
+    terrain_to_place_on GRASS2
+    avoid_forest_zone 1
+}
+
+/* TODO scale distance between relics and players/other relics for different map sizes - 
+place two relics in each area, except gold area */
+create_object RELIC {
+    number_of_objects 2
+    min_distance_to_players 22
+    set_gaia_object_only
+    temp_min_distance_group_placement 24
+    min_distance_group_placement 3
+    terrain_to_place_on GRASS2
+    avoid_forest_zone 1
+}
+create_object RELIC {
+    number_of_objects 2
+    min_distance_to_players 22
+    set_gaia_object_only
+    temp_min_distance_group_placement 24
+    min_distance_group_placement 3
+    terrain_to_place_on DLC_MANGROVESHALLOW
+    avoid_forest_zone 1
+}
+create_object RELIC {
+    number_of_objects 2
+    min_distance_to_players 22 /* TODO scale for larger map sizes */
+    set_gaia_object_only
+    temp_min_distance_group_placement 24
+    min_distance_group_placement 3
+    terrain_to_place_on GRAVEL
+    avoid_forest_zone 1
+}
+
+/* a single pile of gold at each base to ensure that each player has gold even if they lose the gold quarter. */
+create_object GOLD {
+    number_of_objects 6
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 9
+    max_distance_to_players 12
+    min_distance_group_placement 3
+    avoid_forest_zone 3
+    group_placement_radius 2
+    set_tight_grouping
+}
+
+
+

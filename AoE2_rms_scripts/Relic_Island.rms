@@ -1,0 +1,1019 @@
+
+/* 
+Title: Relic Island
+Author: Jasuni
+Version: 1.3
+Published: 11 Nov 2021
+Updated: 18 Oct 2022
+map info: With no gold to mine, players will need to take the relics from the rocky island or trade. Fortunately, there are trade posts in the 4 corners of the world waiting for trade carts to come their way.
+
+This map supports most game modes, including Empire Wars. Players also start with a monastery and a priest (unless playing Capture the Relic) to facilitate the capture of relics. Trade units also have a reduced cost to facilitate their creation.
+
+
+
+
+map features: rocky island in center containing relics
+players start with a monastery/monk (except in capture the relic)
+no gold mines (In Empire Wars, players start with market/trade carts)
+neutral markets in the corner
+
+should support all game modes except Battle Royale
+
+V 1.1: reduce gold cost of trade units to 40
+
+1.3:
+reduced wood cost of trade carts (rather than just gold cost)
+changed how monastery and priest are placed: priest should now spawn close to the monastery.
+player stone piles have a min distance from each other
+
+
+TODO see if there is a way to ensure that markets (in empire wars) are placed more fairly
+make middle island's beach terrain the wet rock beach terrain
+Consider starting with a market for immediate trade (would be a bit unbalancing due to unequal distances)
+Also consider adding in a weak, trainable dark age military ship (canoe?) 
+Move transport ship to the feudal age using XS
+
+#define ENABLE_THEMES
+TODO write xs script and TODO test to see if I can use an if statement to only include the xs script if the players are in dark age?
+#includeXS transportToFeudal.xs
+ */
+ 
+#define ENABLE_THEMES
+if DARK_AGE_START
+    #includeXS transportToFeudal.xs
+endif
+if ENABLE_THEMES
+	start_random
+		percent_chance 50 #define THEME_ASIAN
+		percent_chance 50 #define THEME_EUROPEAN
+        /*
+		percent_chance 0 #define THEME_EASTERN
+		percent_chance 0 #define THEME_AMERICAN
+		percent_chance 0 #define THEME_AFRICAN */
+	end_random
+else
+	#define THEME_ASIAN
+endif
+/* BASE_BLEND_C shows up differently than the others - the rest take up 10%, but C is placed before the forests are, and it rarely shows up. When it does show up, it seems to favor a few small patches in the forests, as if its appearance were a bug. */
+if THEME_ASIAN /* going for a lush asian theme */
+    #const BEACH_TERRAIN 2
+    
+    #const BASE_TERRAIN 83 /* Grass, Jungle */
+    #const BASE_FOREST 56 /* DLC_RAINFOREST */
+
+    #const BASE_FOREST_BLEND 111
+    /* 77 - underbrush, Jungle 
+        76 - Dirt, Mud
+        100 - DLC_DRYGRASS
+        44 - DLC_MOORLAND
+        83 - Grass, Jungle
+        60 - DLC_JUNGLEGRASS
+        62 - DLC_GUNGLELEAVES
+    */
+    #const BASE_BLEND_A 56 /* DLC_RAINFOREST */
+    #const BASE_BLEND_B 111 /* MUDDY_SHALLOW - might be a bit too strong in appearance */
+    #const BASE_BLEND_C 62 /* DLC_JUNGLELEAVES */
+    #const BASE_BLEND_D 60 /* DLC_JUNGLEGRASS */
+    #const BASE_BLEND_E 101 /* DLC_BOGLAND */
+    #const BASE_BLEND_U 77 /* underbrush, Jungle */
+
+
+    #const POND_TERRAIN 1 /* WATER - may want to add other constants for med and deep water */
+
+    /* unit constants for aesthetic plants */
+    #const AESTHETIC_FLAT 1362
+    #const AESTHETIC_GROUPED 820
+    #const AESTHETIC_SCATTER 859
+
+    #define FAT_HERDABLE
+    #const HERDABLE 1142 /* DLC_WATERBUFFALO */
+elseif THEME_EUROPEAN /* TODO compare to current terrains, and see what changes need to be made
+note that this theme is based on my original map more than Arabia's definition of the European theme (I think that was the map I pulled from) */
+    #const BEACH_TERRAIN 2
+    
+    #const BASE_TERRAIN 12 /* GRASS2 */
+    #const BASE_FOREST 10 /* FOREST */
+    #const BASE_FOREST_BLEND 5 /* leaves, for no change */
+
+    #const BASE_BLEND_A 5 /* LEAVES */
+    #const BASE_BLEND_B 9 /* GRASS3 */
+    #const BASE_BLEND_C 0 /* GRASS */
+    #const BASE_BLEND_D 100 /* DLC_DRYGRASS */
+    #const BASE_BLEND_E 71  /* Underbrush, Leaves */
+    #const BASE_BLEND_U 3 /* DIRT3 */
+
+    #const POND_TERRAIN 1 /* WATER */
+
+    /* unit constants for aesthetic plants */
+    #const AESTHETIC_FLAT 1366
+    #const AESTHETIC_GROUPED 809
+    #const AESTHETIC_SCATTER 1366
+    
+    #const HERDABLE 594 /* SHEEP */
+endif
+
+<PLAYER_SETUP>
+random_placement
+behavior_version 2
+ai_info_map_type CRATER_LAKE 0 0 0 /* Marketplace would be nicer if it was available */
+
+#const PRIEST_WITH_RELIC 1400
+if DARK_AGE_START
+	/* priests */
+	effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_MAX_RANGE 0 /* From Holy City, any range greater than 0 is supposed to be problematic in the dark age - ideally, I would outright remove the monk's ability to convert entirely, but the only way I know to do that is to use Chand Bardai, who can't pick up relics. */
+	effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SHOWN_RANGE 0
+	effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_LINE_OF_SIGHT 6
+	/* priest with relic */
+	effect_amount SET_ATTRIBUTE PRIEST_WITH_RELIC ATTR_LINE_OF_SIGHT 4
+	effect_amount SET_ATTRIBUTE PRIEST_WITH_RELIC ATTR_ICON_ID 294
+elseif FEUDAL_AGE_START /* consider changing this to be consistent with the dark age start. */
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_MAX_RANGE 6
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SHOWN_RANGE 6
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_LINE_OF_SIGHT 9 /* reduce by 2, making it match the Priest w/ Relic LOS range */
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SEARCH_RADIUS 9
+	effect_amount SET_ATTRIBUTE PRIEST_WITH_RELIC ATTR_LINE_OF_SIGHT 4
+endif
+/* At last test, the following code to reduce the gold cost wasn't working. Perhaps it was an issue with the game using the published mod. */
+#const TRADE_CART_FULL 205
+effect_amount SET_ATTRIBUTE TRADE_CART ATTR_GOLD_COST 40
+effect_amount SET_ATTRIBUTE TRADE_CART_FULL ATTR_GOLD_COST 40
+effect_amount SET_ATTRIBUTE TRADE_COG ATTR_GOLD_COST 40
+effect_amount SET_ATTRIBUTE DONKEY ATTR_GOLD_COST 40
+
+effect_amount SET_ATTRIBUTE TRADE_CART ATTR_WOOD_COST 80
+effect_amount SET_ATTRIBUTE TRADE_CART_FULL ATTR_WOOD_COST 80
+effect_amount SET_ATTRIBUTE TRADE_COG ATTR_WOOD_COST 80
+effect_amount SET_ATTRIBUTE DONKEY ATTR_FOOD_COST 80
+
+<LAND_GENERATION>
+base_terrain POND_TERRAIN
+create_player_lands {
+    terrain_type POND_TERRAIN
+    circle_radius 37 0
+}
+create_land {
+    terrain_type DLC_ROCK
+    top_border 40
+    bottom_border 40
+    left_border 40
+    right_border 40
+    land_percent 100
+    border_fuzziness 40
+}
+create_land {
+    terrain_type BASE_TERRAIN
+    land_position 1 1
+    land_percent 0
+}
+create_land {
+    terrain_type BASE_TERRAIN
+    land_position 99 1
+    land_percent 0
+}
+create_land {
+    terrain_type BASE_TERRAIN
+    land_position 1 99
+    land_percent 0
+}
+create_land {
+    terrain_type BASE_TERRAIN
+    land_position 99 99
+    land_percent 0
+}
+<ELEVATION_GENERATION>
+create_elevation 1 {
+    base_terrain DLC_ROCK    
+    if TINY_MAP
+        number_of_tiles 60
+    elseif SMALL_MAP
+        number_of_tiles 72
+    elseif MEDIUM_MAP
+        number_of_tiles 84
+    elseif LARGE_MAP
+        number_of_tiles 100
+    elseif HUGE_MAP
+        number_of_tiles 110
+    elseif GIGANTIC_MAP
+        number_of_tiles 120
+    else /* LUDIKRIS_MAP */
+        number_of_tiles 240
+    endif
+    number_of_clumps 12
+    set_scale_by_groups
+    enable_balanced_elevation
+}
+create_elevation 2 {
+    base_terrain DLC_ROCK
+    if TINY_MAP
+        number_of_tiles 60
+    elseif SMALL_MAP
+        number_of_tiles 72
+    elseif MEDIUM_MAP
+        number_of_tiles 84
+    elseif LARGE_MAP
+        number_of_tiles 100
+    elseif HUGE_MAP
+        number_of_tiles 110
+    elseif GIGANTIC_MAP
+        number_of_tiles 120
+    else /* LUDIKRIS_MAP */
+        number_of_tiles 240
+    endif
+    number_of_clumps 8
+    set_scale_by_groups
+    enable_balanced_elevation
+}
+
+<TERRAIN_GENERATION>
+/*
+create_terrain DIRT {
+    base_terrain POND_TERRAIN
+    land_percent 100
+    if TINY_MAP
+        spacing_to_other_terrain_types 9
+    elseif SMALL_MAP
+        spacing_to_other_terrain_types 11 /* 10.8 */
+    elseif MEDIUM_MAP
+        spacing_to_other_terrain_types 13 /* 12.6 */
+    elseif LARGE_MAP
+        spacing_to_other_terrain_types 15
+    elseif HUGE_MAP
+        spacing_to_other_terrain_types 16 /* 15.5 */
+    elseif GIGANTIC_MAP
+        spacing_to_other_terrain_types 18
+    else /* ludikrus */
+        spacing_to_other_terrain_types 36
+    endif
+} 
+create_terrain FOREST {
+    base_terrain DIRT
+    land_percent 12
+    number_of_clumps 24
+} */
+/* create outer land - will avoid corners as well as the middle island. */
+create_terrain BASE_BLEND_U {
+    base_terrain POND_TERRAIN
+    land_percent 100
+    if TINY_MAP
+        spacing_to_other_terrain_types 9
+    elseif SMALL_MAP
+        spacing_to_other_terrain_types 11 /* 10.8 */
+    elseif MEDIUM_MAP
+        spacing_to_other_terrain_types 13 /* 12.6 */
+    elseif LARGE_MAP
+        spacing_to_other_terrain_types 15
+    elseif HUGE_MAP
+        spacing_to_other_terrain_types 16 /* 15.5 */
+    elseif GIGANTIC_MAP
+        spacing_to_other_terrain_types 18
+    else /* ludikrus */
+        spacing_to_other_terrain_types 36
+    endif
+} 
+/* TODO shrink the area around markets that is clear of forest? I don't think that I'll be able to do this easily. It isn't particularly important, so I can leave it as is. */
+/* cover dirt with a layer of grass to distinguish it from dirt made later. */
+create_terrain BASE_BLEND_C {
+    base_terrain BASE_BLEND_U 
+    terrain_mask 1
+    land_percent 100
+}
+/* dirt to fill in the corners */
+create_terrain BASE_BLEND_U {
+    base_terrain BASE_TERRAIN
+    land_percent 100
+    number_of_clumps 8
+}
+
+create_terrain BASE_BLEND_U {
+    base_terrain POND_TERRAIN
+    if TINY_MAP /* 36 allows a small chance of water near a corner market on a tiny map */
+        spacing_to_other_terrain_types 18 
+    else /* the amount doesn't really matter, so long as the corners are filled in and it is at least as large as the middle pond's spacing attribute */
+        spacing_to_other_terrain_types 36
+    endif
+    number_of_clumps 16
+    land_percent 100
+}
+/* create forest on the dirt while having it avoid corners */
+create_terrain BASE_FOREST {
+    base_terrain BASE_BLEND_U
+    base_layer BASE_BLEND_C
+    land_percent 16
+    number_of_clumps 60
+    set_avoid_player_start_areas
+} /* TODO spread the forests out some more - likely best done using two clumps of forest, set to avoid each other. */
+create_terrain BASE_FOREST_BLEND {
+    base_terrain BASE_FOREST
+    land_percent 100
+    terrain_mask 1
+    number_of_clumps 9320
+}
+/* turn dirt back into Grass */
+
+
+create_terrain BASE_TERRAIN {
+    base_terrain BASE_BLEND_U
+    land_percent 100
+    number_of_clumps 100
+}
+create_terrain BASE_TERRAIN {
+    base_terrain BASE_BLEND_U
+    land_percent 100
+    number_of_clumps 99
+}
+create_terrain BASE_TERRAIN {
+    base_terrain BASE_BLEND_U
+    land_percent 100
+    number_of_clumps 88
+}  /* still a small possibility of dirt surviving, but not much that I can do about that. What does survive is mostly just dirt surrounded by forest, so not really a notable concern. */
+/* cosmetic terrain mixing - copied/modified from Holy City, where the terrain mixing was done by Zetnus. */
+create_terrain MED_WATER {
+    base_terrain POND_TERRAIN
+    land_percent 100
+    number_of_clumps 9320
+    spacing_to_other_terrain_types 1
+}
+create_terrain DEEP_WATER {
+    base_terrain MED_WATER
+    land_percent 3
+    number_of_clumps 30
+    set_scale_by_groups
+    spacing_to_other_terrain_types 1
+}
+create_terrain BASE_BLEND_B {
+	base_terrain BASE_TERRAIN
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 18
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain BASE_BLEND_D {
+	base_terrain BASE_TERRAIN
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 18
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain BASE_BLEND_E {
+	base_terrain BASE_TERRAIN
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 18
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain BASE_BLEND_A {
+	base_terrain BASE_TERRAIN
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 18
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain BASE_BLEND_U {
+	base_terrain BASE_TERRAIN
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 18
+	set_scale_by_groups
+	terrain_mask 1
+} 
+<OBJECTS_GENERATION>
+/* actor area for neutral markets in the corners */
+create_actor_area 0 0 1 0
+if TINY_MAP
+    create_actor_area 118 0 2 0
+    create_actor_area 0 118 3 0
+    create_actor_area 118 118 4 0
+elseif SMALL_MAP
+    create_actor_area 142 0 2 0
+    create_actor_area 0 142 3 0
+    create_actor_area 142 142 4 0
+elseif MEDIUM_MAP
+    create_actor_area 166 0 2 0
+    create_actor_area 0 166 3 0
+    create_actor_area 166 166 4 0
+elseif LARGE_MAP
+    create_actor_area 198 0 2 0
+    create_actor_area 0 198 3 0
+    create_actor_area 198 198 4 0
+elseif HUGE_MAP
+    create_actor_area 218 0 2 0
+    create_actor_area 0 218 3 0
+    create_actor_area 218 218 4 0
+elseif GIGANTIC_MAP
+    create_actor_area 238 0 2 0
+    create_actor_area 0 238 3 0
+    create_actor_area 238 238 4 0
+else /* ludikrus map */
+    create_actor_area 478 0 2 0
+    create_actor_area 0 478 3 0
+    create_actor_area 478 478 4 0
+endif
+#const TRADING_POST 1646
+#const FLARE 112
+create_object FLARE {
+    set_place_for_every_player
+    actor_area_to_place_in 1
+}
+create_object FLARE {
+    set_place_for_every_player
+    actor_area_to_place_in 2
+}
+create_object FLARE {
+    set_place_for_every_player
+    actor_area_to_place_in 3
+}
+create_object FLARE {
+    set_place_for_every_player
+    actor_area_to_place_in 4
+}
+create_object TRADING_POST {
+    actor_area_to_place_in 1
+    set_place_for_every_player
+    set_gaia_object_only
+    actor_area 6
+    actor_area_radius 5
+}
+create_object TRADING_POST {
+    actor_area_to_place_in 2
+    set_place_for_every_player
+    set_gaia_object_only
+    actor_area 6
+    actor_area_radius 5
+}
+create_object TRADING_POST {
+    actor_area_to_place_in 3
+    set_place_for_every_player
+    set_gaia_object_only
+    actor_area 6
+    actor_area_radius 5
+}
+create_object TRADING_POST {
+    actor_area_to_place_in 4
+    set_place_for_every_player
+    set_gaia_object_only
+    actor_area 6
+    actor_area_radius 5
+}
+
+/* player resources 
+1 group of 6 forage bushes at least 10 tiles away - modified
+1 group of 5 stone mines at least 12 tiles away - done
+1 group of 4 stone mines at least 16 tiles away - done
+*/
+create_object TOWN_CENTER {
+    find_closest
+    set_place_for_every_player
+}
+
+
+#const MONUMENT_RESOURCES 1639
+
+if KING_OT_HILL
+    create_object MONUMENT_RESOURCES {
+        number_of_objects			1
+        set_place_for_every_player
+        min_distance_to_players			0
+        max_distance_to_players			0
+    }
+endif
+if REGICIDE
+    create_object KING {
+        set_place_for_every_player
+        min_distance_to_players 6
+        find_closest
+    }
+    /* castle/tower? */
+endif
+if EMPIRE_WARS
+else
+create_object VILLAGER {
+    set_place_for_every_player
+    min_distance_to_players 6
+    max_distance_to_players 6
+}
+create_object TRADE_CART {
+    set_place_for_every_player
+    min_distance_to_players 7
+    max_distance_to_players 9
+}
+endif
+
+/*
+if TINY_MAP    create_actor_area 60 60 12 30
+elseif SMALL_MAP create_actor_area 72 72 12 36
+elseif MEDIUM_MAP create_actor_area 84 84 12 42
+elseif LARGE_MAP create_actor_area 100 100 12 50
+elseif HUGE_MAP create_actor_area 110 110 12 55
+elseif GIGANTIC_MAP create_actor_area 120 120 12 60
+elseif LUDIKRIS_MAP create_actor_area 240 240 12 120
+endif
+if TINY_MAP    create_actor_area 60 60 11 0
+elseif SMALL_MAP create_actor_area 72 72 11 0
+elseif MEDIUM_MAP create_actor_area 84 84 11 0
+elseif LARGE_MAP create_actor_area 100 100 11 0
+elseif HUGE_MAP create_actor_area 110 110 11 0
+elseif GIGANTIC_MAP create_actor_area 120 120 11 0
+elseif LUDIKRIS_MAP create_actor_area 240 240 11 0
+endif
+*/
+#const ON_GRID 278 /* 278 - dead fish trap */
+
+create_object MONASTERY {
+    set_place_for_every_player
+    min_distance_group_placement 3
+    avoid_forest_zone 1
+    avoid_cliff_zone
+    find_closest_to_map_center
+    set_circular_placement
+    if TINY_MAP
+        max_distance_to_other_zones 7 
+        max_distance_to_players 10
+    elseif SMALL_MAP
+        max_distance_to_other_zones 7 
+        max_distance_to_players 12
+    elseif LUDIKRIS_MAP
+        max_distance_to_other_zones 17
+        max_distance_to_players 40
+    else
+        max_distance_to_other_zones 9
+        max_distance_to_players 20
+    endif
+    if EMPIRE_WARS
+        actor_area 107
+        actor_area_radius 7
+    else 
+        actor_area 107
+        actor_area_radius 5
+    endif
+}
+if CAPTURE_THE_RELIC
+else
+    /* relic priest to increase the early gold trickle. */
+    create_object PRIEST_WITH_RELIC {
+        set_place_for_every_player
+        /* consider adding find_closest_to_map_center */
+        find_closest_to_map_center
+        avoid_forest_zone 1
+        avoid_cliff_zone
+        min_distance_group_placement 1
+        actor_area_to_place_in 107
+    }
+endif
+
+if EMPIRE_WARS
+    create_object FARM {
+        second_object VILLAGER
+        number_of_objects 8
+        set_place_for_every_player
+        find_closest
+    }
+    create_object HOUSE {
+        number_of_objects 6
+        set_place_for_every_player
+        min_distance_to_players 7
+        find_closest
+        actor_area 104
+        actor_area_radius 3
+    }
+    create_object BLACKSMITH {
+        set_place_for_every_player
+        min_distance_to_players 7
+        find_closest
+        actor_area 105
+        actor_area_radius 3
+    }
+    create_object BARRACKS {
+        set_place_for_every_player
+        min_distance_to_players 7
+        find_closest
+        actor_area 106
+        actor_area_radius 3
+    }
+
+    /* also house, barracks, blacksmith */
+else
+    create_object HOUSE {
+        set_place_for_every_player
+        min_distance_to_players 9
+        max_distance_to_players 11
+        min_distance_group_placement 3
+        avoid_forest_zone 2
+        avoid_cliff_zone
+    }
+endif
+
+create_object FORAGE {
+    number_of_objects 4
+    set_gaia_object_only
+    set_place_for_every_player
+    min_distance_to_players 10
+    temp_min_distance_group_placement 20
+    avoid_forest_zone 3
+    avoid_cliff_zone
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+    set_tight_grouping
+    group_placement_radius 2
+    if EMPIRE_WARS
+        number_of_groups 1
+        actor_area 101
+        actor_area_radius 2
+        find_closest
+    else
+        min_distance_group_placement 3 /* TODO extend so that other objects avoid the Forage bushes, and do likewise for other resources? */
+        max_distance_to_players 14
+        number_of_groups 2
+    endif
+}
+if EMPIRE_WARS
+    create_object ON_GRID {
+        number_of_objects 99
+        set_place_for_every_player
+        actor_area_to_place_in 101
+        actor_area 102
+        actor_area_radius 3
+        resource_delta -60
+    }
+    create_object FORAGE { /* stress test shows that these can end up connected with opponent's berries. However, I consider this a rather minor issue. */
+        set_gaia_object_only
+        set_place_for_every_player
+        min_distance_to_players 14
+        max_distance_to_players 20
+        avoid_forest_zone 3
+        avoid_cliff_zone
+        avoid_actor_area 101
+        avoid_actor_area 102
+        avoid_actor_area 104
+        avoid_actor_area 105
+        avoid_actor_area 106
+        avoid_actor_area 107
+        avoid_actor_area 108
+        set_tight_grouping
+        group_placement_radius 2
+        number_of_objects 3
+        temp_min_distance_group_placement 20
+
+    }
+endif
+create_object STONE {
+    set_gaia_object_only
+    set_place_for_every_player
+    number_of_objects 5
+    min_distance_to_players 12
+    max_distance_to_players 15
+    min_distance_group_placement 3
+    avoid_forest_zone 3
+    avoid_cliff_zone
+    set_tight_grouping
+    group_placement_radius 2
+    avoid_actor_area 6
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+    actor_area 7
+    actor_area_radius 12
+}
+create_object STONE {
+    set_gaia_object_only
+    set_place_for_every_player
+    number_of_objects 4
+    min_distance_to_players 16
+    max_distance_to_players 20
+    min_distance_group_placement 3
+    avoid_forest_zone 3
+    avoid_cliff_zone
+    set_tight_grouping
+    group_placement_radius 2
+    avoid_actor_area 6
+    avoid_actor_area 7
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+}
+if EMPIRE_WARS
+    create_object OFF_GRID {
+        number_of_objects 99
+        set_place_for_every_player
+        actor_area_to_place_in 101
+        actor_area 102
+        actor_area_radius 3
+    }
+    create_object MILL {
+        set_place_for_every_player
+        actor_area_to_place_in 101
+        find_closest
+    }
+    create_object VILLAGER {
+        number_of_objects 4
+        set_place_for_every_player
+        actor_area_to_place_in 101
+        find_closest
+
+    }
+    create_object LUMBER_CAMP {
+        number_of_objects 3
+        set_place_for_every_player
+        place_on_forest_zone
+        find_closest
+        temp_min_distance_group_placement 7
+        avoid_actor_area 102
+        avoid_actor_area 104
+        avoid_actor_area 105
+        avoid_actor_area 106
+        actor_area 103
+        actor_area_radius 5
+    }
+    create_object VILLAGER {
+        number_of_objects 10
+        set_place_for_every_player
+        actor_area_to_place_in 103
+        place_on_forest_zone
+        find_closest
+        temp_min_distance_group_placement 1
+    }    
+    create_object MARKET {
+        set_place_for_every_player
+        min_distance_to_players 10
+        find_closest
+        actor_area 108
+        actor_area_radius 5
+        actor_area_to_place_in 107
+        avoid_actor_area 102
+        avoid_actor_area 104
+        avoid_actor_area 105
+        avoid_actor_area 106
+    }
+    create_object TRADE_CART {
+        number_of_objects 5
+        set_place_for_every_player
+        actor_area_to_place_in 108
+        avoid_actor_area 102
+        avoid_actor_area 104
+        avoid_actor_area 105
+        avoid_actor_area 106
+        find_closest
+        /* option: place a trade cart near one of the neutral markets - perhaps the closest one? This could be a bit unfair for players who start farther or closer to the markets. */
+    }
+    create_object ON_GRID {
+        second_object DOCK
+        resource_delta -60
+        terrain_to_place_on POND_TERRAIN
+        find_closest
+        set_place_for_every_player
+        actor_area 109
+        actor_area_radius 3
+        avoid_forest_zone
+    }
+    create_object ON_GRID {
+        second_object FISHING_SHIP
+        terrain_to_place_on POND_TERRAIN
+        set_place_for_every_player
+        number_of_objects 3
+        actor_area_to_place_in 109
+        resource_delta -60
+    }
+endif
+/*
+
+1 group of 4 sheep at around 7 tiles (if cows/water buffalo, use 1 group of 3 instead)
+In competitive maps, 1 of these often starts under control of the player.
+2 groups of 2 sheep at a shared variable min distance (14-24) away (if cows/water buffalo, use 1 group of 3, or 2+1 instead)
+2 individual boar at least 16 tiles away
+1 group of either 3 or 4 deer at a variable min distance (14-24) away
+1 individual predator at least 34 tiles away
+2 individual trees at 4-5 tiles away
+3 individual trees at 6-8 tiles away */
+/* TODO switch to randomize type of herdable/deer/boar */
+create_object HERDABLE {
+    if EMPIRE_WARS
+        number_of_objects 1
+        find_closest
+    else
+        if FAT_HERDABLE
+            number_of_objects 3
+        else
+            number_of_objects 4
+        endif
+        set_gaia_object_only
+        min_distance_to_players 7
+        max_distance_to_players 9
+        min_distance_group_placement 2
+        set_loose_grouping
+        avoid_forest_zone
+        avoid_cliff_zone
+    endif
+    avoid_actor_area 6
+    set_place_for_every_player
+}
+create_object HERDABLE {
+    set_gaia_object_only
+    set_place_for_every_player
+    if FAT_HERDABLE
+        number_of_objects 3
+        number_of_groups 1 /* start scattered without a number for groups */
+    else
+        number_of_groups 2
+        number_of_objects 2
+    endif
+    min_distance_to_players 12
+    max_distance_to_players 24
+    min_distance_group_placement 2
+    avoid_forest_zone
+    avoid_cliff_zone
+    avoid_actor_area 6
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+} 
+create_object DEER {
+    set_gaia_object_only
+    set_place_for_every_player
+    number_of_objects 4
+    min_distance_to_players 12
+    max_distance_to_players 19
+    min_distance_group_placement 2
+    avoid_forest_zone
+    avoid_cliff_zone
+    set_loose_grouping
+    terrain_to_place_on BASE_TERRAIN
+    avoid_actor_area 6
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+}
+if EMPIRE_WARS
+else
+    if TROPICAL_MAP
+    create_object JAVELINA
+    else
+    create_object BOAR
+    endif
+    {
+        set_gaia_object_only
+        set_place_for_every_player
+        number_of_groups 2
+        min_distance_to_players 16
+        max_distance_to_players 24
+        temp_min_distance_group_placement 16
+        min_distance_group_placement 2
+        avoid_forest_zone
+        avoid_cliff_zone
+        avoid_actor_area 6
+    }
+    /* TODO alter to fit rest of the map/randomize tree type */
+    create_object PINE_FOREST_TREE {
+        set_gaia_object_only
+        set_place_for_every_player
+        number_of_objects 2
+        min_distance_to_players 4
+        max_distance_to_players 5
+        min_distance_group_placement 2
+    }
+    create_object PINE_FOREST_TREE {
+        set_gaia_object_only
+        set_place_for_every_player
+        number_of_objects 3
+        min_distance_to_players 6
+        max_distance_to_players 8
+        min_distance_group_placement 2
+    }
+endif
+
+/* neutral stone/hunts
+TODO check to see whether amounts are fine for gameplay purposes. */
+create_object STONE {
+    number_of_groups 9320
+    temp_min_distance_group_placement 50
+    min_distance_to_players 30
+    number_of_objects 3
+    group_variance 1 /* - wish I could do 2-3: that would be ideal. */
+    set_tight_grouping
+    min_distance_group_placement 3
+    avoid_forest_zone 2
+    avoid_cliff_zone
+    avoid_actor_area 6
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+}
+create_object DEER {
+    number_of_groups 9320
+    temp_min_distance_group_placement 55
+    min_distance_to_players 34
+    number_of_objects 3
+    group_variance 1
+    set_loose_grouping
+    min_distance_group_placement 2
+    avoid_forest_zone
+    avoid_cliff_zone
+    terrain_to_place_on BASE_TERRAIN
+    avoid_actor_area 6
+    avoid_actor_area 102
+    avoid_actor_area 104
+    avoid_actor_area 105
+    avoid_actor_area 106
+
+}
+if THEME_ASIAN
+create_object DLC_TIGER
+elseif TROPICAL_MAP
+create_object JAGUAR 
+else
+create_object WOLF 
+endif
+{
+    set_gaia_object_only
+    number_of_groups 2
+    set_place_for_every_player
+    min_distance_to_players 34 /* no max distance */
+    max_distance_to_players 64
+    temp_min_distance_group_placement 64
+    min_distance_group_placement 1
+    avoid_forest_zone
+    avoid_cliff_zone
+    avoid_actor_area 6
+}
+/* shore fish, then relics, then remaining fish - ordered so that the shore fish will discourage relics from the edges, relics discourage fish from the rocky island, and so that salmon don't create too large of a swath of island that relics can't be placed on. */
+create_object SHORE_FISH {
+    number_of_objects 9320
+    temp_min_distance_group_placement 8
+    min_distance_group_placement 2
+}
+/* relics with variable distance: on tiny map size, this tends to produce 6-9 relics, on giant map size, somewhere around 25. Changes since my counts may adjust/lower the numbers. */
+create_object RELIC {
+    number_of_groups 9320
+    temp_min_distance_group_placement 14
+    if LUDIKRIS_MAP /* ludikris map size takes too long to generate as it is, so I don't want another actor area to prolong it. */
+        min_distance_group_placement 6
+    else
+        min_distance_group_placement 2 /* for rocks to avoid the relics */
+        actor_area 5
+        actor_area_radius 6 
+    endif
+    terrain_to_place_on DLC_ROCK
+}
+create_object RELIC {
+    number_of_groups 9320
+    temp_min_distance_group_placement 7
+    avoid_actor_area 5
+    min_distance_group_placement 2
+    terrain_to_place_on DLC_ROCK
+}
+create_object SALMON {
+    number_of_objects 9320
+    temp_min_distance_group_placement 20
+    min_distance_group_placement 7
+    max_distance_to_other_zones 6
+}
+create_object SALMON {
+    number_of_objects 9320
+    temp_min_distance_group_placement 10
+    max_distance_to_other_zones 4
+}
+
+#const ROCK_B 1323 /* slightly lighter color, and looks a bit more breakable */
+#const ROCK_GOLD 841
+#const ROCK_STONE 839 /* this one I am considering for the center island, even if it would be practically useless due to the difficulty of harvesting. */
+effect_amount SET_ATTRIBUTE ROCK ATTR_TERRAIN_ID 7
+effect_amount SET_ATTRIBUTE ROCK_B ATTR_TERRAIN_ID 7
+
+/* place rocks for decorative purposes on the center island. */
+create_object ROCK {
+    number_of_objects 4
+    terrain_to_place_on DLC_ROCK
+    max_distance_to_other_zones 6
+    set_scaling_to_map_size
+}
+create_object ROCK_B {
+    number_of_objects 4
+    terrain_to_place_on DLC_ROCK
+    max_distance_to_other_zones 4
+    set_scaling_to_map_size
+}
+create_object ROCK {
+    number_of_objects 9320
+    temp_min_distance_group_placement 5
+    min_distance_group_placement 2
+    terrain_to_place_on DLC_ROCK
+    max_distance_to_other_zones 5
+    /* either avoid the actor area for the monasteries, or alter terrain placement */
+}
+
+create_object ROCK_B {
+    number_of_objects 9320
+    temp_min_distance_group_placement 6
+    terrain_to_place_on DLC_ROCK
+    max_distance_to_other_zones 3
+    /* either avoid the actor area for the monasteries, or alter terrain placement */
+}
+

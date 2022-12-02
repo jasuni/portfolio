@@ -1,0 +1,1155 @@
+#includeXS Holy_City.xs
+/* 
+Title: Holy City
+Author: Jasuni
+Version: 0.6.0
+map info: You have heard of an abandoned holy city far away, with relics aplenty. You've decided travel there with your own sacred relic to build a new home.
+
+But wait! Others have had this same idea. Now you must fight them for control over the city and the holy relics contained therein.
+
+
+description for map contest:
+Jasuni
+
+Players start as pilgrims traveling to a friendly monastery in an abandoned Holy City. The city is surrounded by a moat and contains many relics which players will need to capture to defeat the enemy marauders.
+
+Map requires a Tiny map size to generate properly. Priests have had their range lowered. The relic trickle rate has been halved and controlling the temple of heaven also generates a gold trickle. The gates of the neutral city are weakened, but villagers may not attack them.
+
+bugs/issues: 
+The gates are suffering from some bugs: part of the gate "converts", resulting in a change of colors. No line of sight is granted, but a friendly "captured" gate leaves LOS, it dissapears from view. I don't think this issue is major enough to warrant additional action.
+gates do not open for players, (resolved by making gates easy to destroy - holding the gate open with an invisible object is doable, but would take some major changes (the object would need a move speed, need to remain unconvertible, and would need to be restricted to the terrain that the gate stands on, which would be very tricky))
+Villagers currently cannot attack the gates (or walls, or houses) - they can repair them, however
+units auto-attack neutral buildings
+
+code needs to be cleaned up some, 
+TODO add ability for the center temple to be randomly selected with some other religious buildings (such as Dome of the Rock)
+TODO enforce a minimum distance between TCs - is suprisingly hard to do
+
+notes: from playtest: with 3 militia (doable by Goths with loom), the gates are destroyed around the time that players advance to the feudal age. Skipping loom could speed up this process (the player would then get loom later once they have gold income from relics, perhaps in the feudal age)
+
+notes for if I were to remake this:
+    Try to see if I can make the gates convertible between players, so that controlling player can open it
+    Make most/all of the city indestructible (except walls and maybe towers)
+    change relic priest to a priest with a relic next to it (bug with relic counts not including relic priest's relic)
+    limit transport ships to feudal age onwards?
+ */
+
+<PLAYER_SETUP>
+random_placement
+behavior_version 1
+/* set_gaia_civilization 6  Chinese - setting this creates issues with upgrading gaia objects, so cannot do without causing more serious issues. */
+
+#const CITY_GATE1 1579 /* /-dir */ 
+#const CITY_GATE2 1583 /* \-dir */
+/* remaining city gates - most of these are unneeded, but I'm not spending the time right now to figure out which ones are actually relevant. */
+#const CG3 1580
+#const CG4 1581
+#const CG5 1582
+/* CITY_GATE2 1583 */
+#const CG6 1584
+#const CG7 1585
+#const CG8 1586
+#const CG9 1587
+#const CG10 1588
+#const CG11 1589
+#const CG12 1590
+#const CG13 1591
+#const CG14 1592
+#const CG15 1593
+#const CG16 1594
+
+#const CITY_WALL 370
+
+#const SPECIAL_BUILDING 1378 /* rock church */
+#const RELIC_PRIEST 1400 /* DLC_AOE1PRIEST carrying a relic */
+#const ON_GRID 278 /* 278 - dead fish trap */
+#const OFF_GRID 647
+#const TERRAIN_BLOCKER 1613 /* I don't think that this was ever used. I could see it being used to keep relics from spawning in the houses, but right now that isn't neccesary. */
+#const TEMPLE 637 /* temple of heaven, chosen because I liked the name 
+TODO add ability to randomly pick between a set of holy buildings. */
+#const RESOURCE_ENABLER 1639 
+#const RELIC_RATE 191 /* might already be a constant for this, but this works */
+#const AMOUNT_RELIC_FOOD_TRICKLE 225 /* Burgundian food trickle - does not appear to be working */
+effect_amount SET_ATTRIBUTE SPECIAL_BUILDING ATTR_TERRAIN_ID 0
+effect_amount UPGRADE_UNIT SPECIAL_BUILDING TEMPLE 0
+effect_amount MOD_RESOURCE RELIC_RATE ATTR_SET 15 /* normal rate appears to be 30 gold/min, so 10 cuts the rate to 1/3 of what it normally is, 15 to half of what it normally is. food trickle is modified through the xs file. */
+
+/* create gold trickle for controlling the temple of heaven */
+#const AMOUNT_GOLD 3
+guard_state SPECIAL_BUILDING AMOUNT_GOLD 100 2 /* 1 gold/sec, or 60g/min */
+
+/* remove LOS from the gates: most of these are unneeded, but I'd rather not spend the time to figure out which of these are actually getting placed - results in a less significant bug where the sides of the gate disappear from view of the "owning" player. */
+effect_amount SET_ATTRIBUTE CG3 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG4 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG5 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG6 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG7 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG8 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG9 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG10 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG11 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG12 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG13 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG14 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG15 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CG16 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CITY_GATE1 ATTR_LINE_OF_SIGHT 0
+effect_amount SET_ATTRIBUTE CITY_GATE2 ATTR_LINE_OF_SIGHT 0
+/* make gates easy to break open - could change to use lower armor and higher hitpoints, but this works well enough. */
+effect_amount SET_ATTRIBUTE CITY_GATE1 ATTR_HITPOINTS 300
+effect_amount SET_ATTRIBUTE CITY_GATE2 ATTR_HITPOINTS 300
+/* reduce priest range, to keep it from being too powerful in the early game. */
+if DARK_AGE_START
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_MAX_RANGE 3
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SHOWN_RANGE 3
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_LINE_OF_SIGHT 6
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SEARCH_RADIUS 6
+    effect_amount SET_ATTRIBUTE RELIC_PRIEST ATTR_LINE_OF_SIGHT 6
+    /* effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_LINE_OF_SIGHT 5
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SEARCH_RADIUS 5
+    a priest with Relic normally has 9 LOS range. A plain priest normally has 11 LOS */
+elseif FEUDAL_AGE_START
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_MAX_RANGE 6
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SHOWN_RANGE 6
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_LINE_OF_SIGHT 9 /* reduce by 2, making it match the Priest w/ Relic LOS range */
+    effect_amount SET_ATTRIBUTE DLC_AOE1PRIEST ATTR_SEARCH_RADIUS 9
+endif
+
+if LARGE_MAP
+    #define AT_LEAST_LARGE
+elseif HUGE_MAP
+    #define AT_LEAST_LARGE
+elseif GIGANTIC_MAP
+    #define AT_LEAST_LARGE
+elseif LUDIKRIS_MAP /* completely insane */
+    #define AT_LEAST_LARGE
+endif
+
+/* randomly determine type of forest */
+start_random
+    percent_chance 50 #define PINE_TREES
+    percent_chance 50 #define OAK_TREES
+end_random
+
+
+<LAND_GENERATION>
+base_terrain GRASS2
+create_player_lands { /* create_land */
+    terrain_type ROAD
+    land_percent 100
+    top_border 25
+    bottom_border 25
+    right_border 25
+    left_border 25
+    zone 1
+    if LARGE_MAP
+        circle_radius 13 0
+    elseif LUDIKRIS_MAP
+        circle_radius 10 0
+    elseif AT_LEAST_LARGE
+        circle_radius 12 0
+    else
+        circle_radius 15 0
+    endif
+    border_fuzziness 100
+}
+/*  alternative land statement
+create_player_lands { 
+    land_percent 0
+    terrain_type DIRT2
+    circle_radius 49 0 
+} */
+
+<TERRAIN_GENERATION>
+
+create_terrain WATER {
+    base_terrain GRASS2
+    land_percent 100
+    spacing_to_other_terrain_types 1
+}
+create_terrain GRASS2 {
+    base_terrain WATER 
+    if TINY_MAP
+        spacing_to_other_terrain_types 6
+    elseif SMALL_MAP
+        spacing_to_other_terrain_types 7
+    elseif MEDIUM_MAP
+        spacing_to_other_terrain_types 8
+    elseif LARGE_MAP
+        spacing_to_other_terrain_types 10
+    elseif HUGE_MAP
+        spacing_to_other_terrain_types 11
+    elseif GIGANTIC_MAP
+        spacing_to_other_terrain_types 12
+    else /* ludikrus */
+        spacing_to_other_terrain_types 24
+    endif
+    land_percent 100
+}
+/* create a circle of dirt for the walls of the city .  */
+create_terrain DIRT2 {
+    base_terrain ROAD
+    land_percent 100
+    spacing_to_other_terrain_types 1
+}
+create_terrain BEACH {
+    base_terrain ROAD
+    land_percent 100
+    spacing_to_other_terrain_types 1
+}
+/* change the terrain outside the walls to grass */
+create_terrain GRASS {
+    base_terrain ROAD
+    land_percent 100
+}
+/* fill the inside of the circle with road */
+create_terrain ROAD {
+    base_terrain DIRT2
+    land_percent 100
+    spacing_to_other_terrain_types 1
+}
+/* create forests */
+if PINE_TREES 
+    create_terrain PINE_FOREST {
+        base_terrain GRASS2
+        land_percent 12 /* from 11 */
+        number_of_clumps 25
+        spacing_to_other_terrain_types 1
+    }
+elseif OAK_TREES
+    create_terrain FOREST {
+        base_terrain GRASS2
+        land_percent 12
+        number_of_clumps 25
+        spacing_to_other_terrain_types 1
+    }
+endif
+
+/* cosmetic terrain mixing, written by Zetnus */
+	create_terrain MED_WATER {
+		base_terrain WATER
+		land_percent 100
+		number_of_clumps 9320
+		spacing_to_other_terrain_types 1
+	}
+	create_terrain DEEP_WATER {
+		base_terrain MED_WATER
+		land_percent 3
+		number_of_clumps 15
+		set_scale_by_groups
+		spacing_to_other_terrain_types 0
+	}
+	
+create_terrain GRASS3 {
+	base_terrain GRASS2
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 12
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain DLC_DRYGRASS {
+	base_terrain GRASS2
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 12
+	set_scale_by_groups
+	terrain_mask 1
+}
+#const UNDERBRUSH 71
+create_terrain UNDERBRUSH {
+	base_terrain GRASS2
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 12
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain LEAVES {
+	base_terrain GRASS2
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 12
+	set_scale_by_groups
+	terrain_mask 1
+}
+create_terrain DIRT3 {
+	base_terrain GRASS2
+	spacing_to_other_terrain_types 0
+	land_percent 10
+	number_of_clumps 12
+	set_scale_by_groups
+	terrain_mask 1
+}
+<OBJECTS_GENERATION>
+
+/* 999 is for temple of heaven, 1000 is for trade carts, 1001 is for the X-road, 1002-1005 are for the gates */
+if TINY_MAP
+    create_actor_area 60 60 999 0
+    create_actor_area 60 60 1000 58
+
+    create_actor_area 60 35 1001 2
+    create_actor_area 60 40 1001 2
+    create_actor_area 60 45 1001 2
+    create_actor_area 60 50 1001 2
+
+    create_actor_area 35 60 1001 2 
+    create_actor_area 40 60 1001 2 
+    create_actor_area 45 60 1001 2 
+    create_actor_area 50 60 1001 2 
+
+    create_actor_area 60 85 1001 2
+    create_actor_area 60 80 1001 2
+    create_actor_area 60 75 1001 2
+    create_actor_area 60 70 1001 2
+
+    create_actor_area 85 60 1001 2 
+    create_actor_area 80 60 1001 2 
+    create_actor_area 75 60 1001 2 
+    create_actor_area 70 60 1001 2 
+
+    create_actor_area 60 31 1002 0 /*  top-left gate  */
+    create_actor_area 31 60 1003 0 /*  bottom-left gate  */
+    create_actor_area 60 89 1004 0 /* bottom-right gate  */
+    create_actor_area 89 60 1005 0 /* top-right gate */
+elseif SMALL_MAP
+    create_actor_area 72 72 999 0
+    create_actor_area 72 72 1000 70
+
+    create_actor_area 72 42 1001 3
+    create_actor_area 72 47 1001 3
+    create_actor_area 72 52 1001 3
+    create_actor_area 72 57 1001 3
+    create_actor_area 72 62 1001 3
+
+    create_actor_area 42 72 1001 3
+    create_actor_area 47 72 1001 3 
+    create_actor_area 52 72 1001 3 
+    create_actor_area 57 72 1001 3 
+    
+    create_actor_area 72 102 1001 3
+    create_actor_area 72 97 1001 3
+    create_actor_area 72 92 1001 3
+    create_actor_area 72 87 1001 3
+    create_actor_area 72 82 1001 3 
+
+    create_actor_area 102 72 1001 3 
+    create_actor_area 97 72 1001 3 
+    create_actor_area 92 72 1001 3 
+    create_actor_area 87 72 1001 3 
+    create_actor_area 82 72 1001 3
+    
+    create_actor_area 72 37 1002 0 /*  top-left gate  */
+    create_actor_area 37 72 1003 0 /*  bottom-left gate  */
+    create_actor_area 72 107 1004 0 /* bottom-right gate  */
+    create_actor_area 107 72 1005 0 /* top-right gate */
+elseif MEDIUM_MAP
+    create_actor_area 84 84 999 0
+    create_actor_area 84 84 1000 82
+
+    create_actor_area 84 48 1001 3
+    create_actor_area 84 53 1001 3
+    create_actor_area 84 58 1001 3
+    create_actor_area 84 63 1001 3
+    create_actor_area 84 68 1001 3
+
+    create_actor_area 48 84 1001 3 
+    create_actor_area 53 84 1001 3 
+    create_actor_area 58 84 1001 3 
+    create_actor_area 63 84 1001 3
+    create_actor_area 68 84 1001 3
+    
+    create_actor_area 84 120 1001 3
+    create_actor_area 84 115 1001 3
+    create_actor_area 84 110 1001 3
+    create_actor_area 84 105 1001 3
+    create_actor_area 84 100 1001 3 
+
+    create_actor_area 120 84 1001 3 
+    create_actor_area 115 84 1001 3 
+    create_actor_area 110 84 1001 3 
+    create_actor_area 105 84 1001 3 
+    create_actor_area 100 84 1001 3
+    
+    create_actor_area 84 43 1002 0 /*  top-left gate  */
+    create_actor_area 43 84 1003 0 /*  bottom-left gate  */
+    create_actor_area 84 125 1004 0 /* bottom-right gate  */
+    create_actor_area 125 84 1005 0 /* top-right gate */
+elseif LARGE_MAP /* Normal Map size */
+    create_actor_area 100 100 999 0
+    create_actor_area 100 100 1000 98
+
+    create_actor_area 100 56 1001 3
+    create_actor_area 100 61 1001 3
+    create_actor_area 100 66 1001 3
+    create_actor_area 100 71 1001 3
+    create_actor_area 100 76 1001 3
+    create_actor_area 100 81 1001 3
+    create_actor_area 100 86 1001 3
+
+    create_actor_area 56 100 1001 3 
+    create_actor_area 61 100 1001 3
+    create_actor_area 66 100 1001 3
+    create_actor_area 71 100 1001 3 
+    create_actor_area 76 100 1001 3 
+    create_actor_area 81 100 1001 3 
+    create_actor_area 86 100 1001 3 
+
+    create_actor_area 100 114 1001 3
+    create_actor_area 100 119 1001 3
+    create_actor_area 100 124 1001 3
+    create_actor_area 100 129 1001 3
+    create_actor_area 100 134 1001 3
+    create_actor_area 100 139 1001 3
+    create_actor_area 100 144 1001 3
+
+    create_actor_area 114 100 1001 3 
+    create_actor_area 119 100 1001 3
+    create_actor_area 124 100 1001 3
+    create_actor_area 129 100 1001 3 
+    create_actor_area 134 100 1001 3 
+    create_actor_area 139 100 1001 3 
+    create_actor_area 144 100 1001 3 
+
+    create_actor_area 100 51 1002 0 /*  top-left gate  */
+    create_actor_area 51 100 1003 0 /*  bottom-left gate  */
+    create_actor_area 100 149 1004 0 /* bottom-right gate  */
+    create_actor_area 149 100 1005 0 /* top-right gate */
+elseif HUGE_MAP /* Large map size */
+    create_actor_area 110 110 999 0
+    create_actor_area 110 110 1000 108
+
+    create_actor_area 110 61 1001 3
+    create_actor_area 110 66 1001 3
+    create_actor_area 110 71 1001 3
+    create_actor_area 110 76 1001 3
+    create_actor_area 110 81 1001 3
+    create_actor_area 110 86 1001 3
+    create_actor_area 110 91 1001 3
+    create_actor_area 110 96 1001 3
+
+    create_actor_area 61 110 1001 3
+    create_actor_area 66 110 1001 3
+    create_actor_area 71 110 1001 3 
+    create_actor_area 76 110 1001 3 
+    create_actor_area 81 110 1001 3 
+    create_actor_area 86 110 1001 3 
+    create_actor_area 91 110 1001 3 
+    create_actor_area 96 110 1001 3 
+
+    create_actor_area 110 114 1001 3
+    create_actor_area 110 119 1001 3
+    create_actor_area 110 124 1001 3
+    create_actor_area 110 129 1001 3
+    create_actor_area 110 134 1001 3
+    create_actor_area 110 139 1001 3
+    create_actor_area 110 144 1001 3
+    create_actor_area 110 149 1001 3
+    create_actor_area 110 154 1001 3
+    create_actor_area 110 159 1001 3
+
+    create_actor_area 124 110 1001 3
+    create_actor_area 129 110 1001 3 
+    create_actor_area 134 110 1001 3 
+    create_actor_area 139 110 1001 3 
+    create_actor_area 144 110 1001 3 
+    create_actor_area 149 110 1001 3 
+    create_actor_area 154 110 1001 3
+    create_actor_area 159 110 1001 3
+    
+    create_actor_area 110 56 1002 0 /*  top-left gate  */
+    create_actor_area 56 110 1003 0 /*  bottom-left gate  */
+    create_actor_area 110 164 1004 0 /* bottom-right gate  */
+    create_actor_area 164 110 1005 0 /* top-right gate */
+elseif GIGANTIC_MAP
+    create_actor_area 120 120 999 0
+    create_actor_area 120 120 1000 118
+
+    create_actor_area 120 66 1001 3
+    create_actor_area 120 71 1001 3
+    create_actor_area 120 76 1001 3
+    create_actor_area 120 81 1001 3
+    create_actor_area 120 86 1001 3
+    create_actor_area 120 91 1001 3
+    create_actor_area 120 96 1001 3
+    create_actor_area 120 101 1001 3
+    create_actor_area 120 106 1001 3
+
+    create_actor_area 66 120 1001 3
+    create_actor_area 71 120 1001 3 
+    create_actor_area 76 120 1001 3 
+    create_actor_area 81 120 1001 3 
+    create_actor_area 86 120 1001 3 
+    create_actor_area 91 120 1001 3 
+    create_actor_area 96 120 1001 3 
+    create_actor_area 101 120 1001 3
+    create_actor_area 106 120 1001 3
+
+    create_actor_area 120 134 1001 3
+    create_actor_area 120 139 1001 3
+    create_actor_area 120 144 1001 3
+    create_actor_area 120 149 1001 3
+    create_actor_area 120 154 1001 3
+    create_actor_area 120 159 1001 3
+    create_actor_area 120 164 1001 3
+    create_actor_area 120 169 1001 3
+    create_actor_area 120 174 1001 3
+
+    create_actor_area 134 120 1001 3 
+    create_actor_area 139 120 1001 3 
+    create_actor_area 144 120 1001 3 
+    create_actor_area 149 120 1001 3 
+    create_actor_area 154 120 1001 3
+    create_actor_area 159 120 1001 3
+    create_actor_area 164 120 1001 3
+    create_actor_area 169 120 1001 3 
+    create_actor_area 174 120 1001 3 
+    
+    create_actor_area 120 61 1002 0 /*  top-left gate  */
+    create_actor_area 61 120 1003 0 /*  bottom-left gate  */
+    create_actor_area 120 179 1004 0 /* bottom-right gate  */
+    create_actor_area 179 120 1005 0 /* top-right gate */
+elseif LUDIKRIS_MAP /* ludicrous - not recommended due to really long creation time */
+    create_actor_area 240 240 999 0
+    create_actor_area 240 240 1000 236 /* moved a bit farther from the edge */
+
+    create_actor_area 240 126 1001 3
+    create_actor_area 240 131 1001 3
+    create_actor_area 240 136 1001 3
+    create_actor_area 240 141 1001 3
+    create_actor_area 240 146 1001 3
+    create_actor_area 240 151 1001 3
+    create_actor_area 240 156 1001 3
+    create_actor_area 240 161 1001 3
+    create_actor_area 240 166 1001 3
+    create_actor_area 240 171 1001 3
+    create_actor_area 240 176 1001 3
+    create_actor_area 240 181 1001 3
+    create_actor_area 240 186 1001 3
+    create_actor_area 240 191 1001 3
+    create_actor_area 240 196 1001 3
+    create_actor_area 240 201 1001 3
+    create_actor_area 240 206 1001 3
+    create_actor_area 240 211 1001 3
+    create_actor_area 240 216 1001 3
+    create_actor_area 240 221 1001 3
+    create_actor_area 240 226 1001 3
+
+    create_actor_area 126 240 1001 3
+    create_actor_area 131 240 1001 3 
+    create_actor_area 136 240 1001 3 
+    create_actor_area 141 240 1001 3 
+    create_actor_area 146 240 1001 3 
+    create_actor_area 151 240 1001 3 
+    create_actor_area 156 240 1001 3 
+    create_actor_area 161 240 1001 3
+    create_actor_area 166 240 1001 3
+    create_actor_area 171 240 1001 3
+    create_actor_area 176 240 1001 3
+    create_actor_area 181 240 1001 3 
+    create_actor_area 186 240 1001 3 
+    create_actor_area 191 240 1001 3 
+    create_actor_area 196 240 1001 3 
+    create_actor_area 201 240 1001 3 
+    create_actor_area 206 240 1001 3 
+    create_actor_area 211 240 1001 3
+    create_actor_area 216 240 1001 3
+    create_actor_area 221 240 1001 3
+    create_actor_area 226 240 1001 3
+
+    create_actor_area 240 254 1001 3
+    create_actor_area 240 259 1001 3
+    create_actor_area 240 264 1001 3
+    create_actor_area 240 269 1001 3
+    create_actor_area 240 274 1001 3
+    create_actor_area 240 284 1001 3
+    create_actor_area 240 289 1001 3
+    create_actor_area 240 294 1001 3
+    create_actor_area 240 299 1001 3
+    create_actor_area 240 304 1001 3
+    create_actor_area 240 309 1001 3
+    create_actor_area 240 314 1001 3
+    create_actor_area 240 319 1001 3
+    create_actor_area 240 324 1001 3
+    create_actor_area 240 329 1001 3
+    create_actor_area 240 334 1001 3
+    create_actor_area 240 339 1001 3
+    create_actor_area 240 344 1001 3
+    create_actor_area 240 349 1001 3
+    create_actor_area 240 354 1001 3
+
+    create_actor_area 254 240 1001 3 
+    create_actor_area 259 240 1001 3
+    create_actor_area 264 240 1001 3
+    create_actor_area 269 240 1001 3 
+    create_actor_area 274 240 1001 3 
+    create_actor_area 279 240 1001 3 
+    create_actor_area 284 240 1001 3 
+    create_actor_area 289 240 1001 3 
+    create_actor_area 294 240 1001 3
+    create_actor_area 299 240 1001 3
+    create_actor_area 304 240 1001 3
+    create_actor_area 309 240 1001 3
+    create_actor_area 314 240 1001 3
+    create_actor_area 319 240 1001 3
+    create_actor_area 324 240 1001 3
+    create_actor_area 329 240 1001 3
+    create_actor_area 334 240 1001 3
+    create_actor_area 339 240 1001 3
+    create_actor_area 344 240 1001 3
+    create_actor_area 349 240 1001 3
+    create_actor_area 354 240 1001 3
+    
+    create_actor_area 240 121 1002 0 /*  top-left gate  */
+    create_actor_area 121 240 1003 0 /*  bottom-left gate  */
+    create_actor_area 240 359 1004 0 /* bottom-right gate  */
+    create_actor_area 359 240 1005 0 /* top-right gate */
+endif
+
+create_object MONASTERY {
+    set_place_for_every_player
+    min_distance_to_players 0
+    max_distance_to_players 0
+}
+ /* for testing purposes only
+create_object SCOUT {
+    set_place_for_every_player
+    terrain_to_place_on ROAD
+} 
+create_object TRANSPORT_SHIP {
+    set_place_for_every_player
+}
+create_object MILITIA {
+    set_place_for_every_player
+    max_distance_to_players 6
+}
+create_object MONK {
+    set_place_for_every_player
+    terrain_to_place_on ROAD
+    max_distance_to_players 6
+} 
+*/
+/* end testing purposes only section */
+
+/* top-left gate */
+create_object CITY_GATE1 { 
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    actor_area_to_place_in 1002
+    set_place_for_every_player
+}
+create_object CITY_GATE2 { /* bottom-left */
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    actor_area_to_place_in 1003
+    set_place_for_every_player
+}
+create_object CITY_GATE1 { /* bottom-right gate */
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    actor_area_to_place_in 1004
+    set_place_for_every_player
+}
+create_object CITY_GATE2 { /* top-right gate */
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    actor_area_to_place_in 1005
+    set_place_for_every_player
+}
+/*
+create_object OMTBO {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    set_place_for_every_player
+    actor_area_to_place_in 1002
+}
+create_object OMTBO {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    set_place_for_every_player
+    actor_area_to_place_in 1003
+}
+create_object OMTBO {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    set_place_for_every_player
+    actor_area_to_place_in 1004
+}
+create_object OMTBO {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    set_place_for_every_player
+    actor_area_to_place_in 1005
+} */
+/* fill in the rest of the walls */
+create_object CITY_WALL {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on DIRT2
+    number_of_objects 9320
+    avoid_actor_area 1002
+    avoid_actor_area 1003
+    avoid_actor_area 1004
+    avoid_actor_area 1005
+    actor_area 1006
+    actor_area_radius 1
+}
+
+create_object OFF_GRID {
+    terrain_to_place_on DIRT2
+    number_of_objects 9320
+    if AT_LEAST_LARGE
+        temp_min_distance_group_placement 2
+    else
+        temp_min_distance_group_placement 1 /* added to speed up map creation */
+    endif
+    actor_area 1007
+    if TINY_MAP
+        actor_area_radius 3
+    elseif LARGE_MAP /* Normal map size */
+        actor_area_radius 3
+    else
+        actor_area_radius 4
+    endif
+}
+create_object OFF_GRID {
+    terrain_to_place_on DIRT2
+    number_of_objects 9320    
+    if AT_LEAST_LARGE
+        temp_min_distance_group_placement 2
+    else
+        temp_min_distance_group_placement 1 /* added to speed up map creation */
+    endif
+    actor_area 1008
+    if TINY_MAP
+        actor_area_radius 7
+    elseif LARGE_MAP 
+        actor_area_radius 7
+    else
+        actor_area_radius 9
+    endif
+}
+create_object OFF_GRID {
+    terrain_to_place_on DIRT2
+    number_of_objects 9320
+    if AT_LEAST_LARGE
+        temp_min_distance_group_placement 2
+    else
+        temp_min_distance_group_placement 1 /* added to speed up map creation */
+    endif
+    actor_area 1009
+    if TINY_MAP
+        actor_area_radius 11 
+    elseif LARGE_MAP 
+        actor_area_radius 11
+    else   
+        actor_area_radius 15
+    endif
+}
+create_object OFF_GRID {
+    terrain_to_place_on DIRT2
+    number_of_objects 9320
+    if AT_LEAST_LARGE
+        temp_min_distance_group_placement 2
+    else
+        temp_min_distance_group_placement 1 /* added to speed up map creation */
+    endif
+    actor_area 1010
+    if TINY_MAP
+        actor_area_radius 16
+    elseif SMALL_MAP
+        actor_area_radius 18
+    elseif LARGE_MAP 
+        actor_area_radius 16
+    else 
+        actor_area_radius 20
+    endif
+}
+if AT_LEAST_LARGE
+    create_object OFF_GRID {
+        terrain_to_place_on DIRT2
+        number_of_objects 9320
+        temp_min_distance_group_placement 2 /* added to speed up map creation */
+        actor_area 1011
+        if LARGE_MAP 
+            actor_area_radius 24
+        elseif HUGE_MAP 
+            actor_area_radius 26
+        else
+            actor_area_radius 28
+        endif
+    }
+    create_object OFF_GRID {
+        terrain_to_place_on DIRT2
+        number_of_objects 9320
+        temp_min_distance_group_placement 2 /* added to speed up map creation */
+        actor_area 1012
+        if LARGE_MAP 
+            actor_area_radius 28
+        elseif HUGE_MAP 
+            actor_area_radius 30
+        else
+            actor_area_radius 34
+
+        endif
+    }
+endif
+if LUDIKRIS_MAP
+    create_object OFF_GRID {
+        terrain_to_place_on DIRT2
+        number_of_objects 9320
+        temp_min_distance_group_placement 3 /* added to speed up map creation */
+        actor_area 1013
+        actor_area_radius 40
+    }
+    create_object OFF_GRID {
+        terrain_to_place_on DIRT2
+        number_of_objects 9320
+        temp_min_distance_group_placement 3 /* added to speed up map creation */
+        actor_area 1014
+        actor_area_radius 46
+    }
+    /* would add more, but it already takes far too long to load */
+endif
+create_object DLC_FORTIFIED_TOWER {
+    set_gaia_object_only
+    set_gaia_unconvertible
+    terrain_to_place_on ROAD
+    number_of_objects 9320
+    actor_area_to_place_in 1006
+    temp_min_distance_group_placement 12
+    if TINY_MAP
+        min_distance_group_placement 2
+    else
+        min_distance_group_placement 3
+    endif
+    /* might want to add another actor area so that I can avoid gates with these towers, but this isn't really neccesary. It's just an aesthetics appearance */
+}
+/* place temple of heaven */
+create_object SPECIAL_BUILDING {
+    actor_area_to_place_in 999
+    set_gaia_object_only
+    /* set_gaia_unconvertible */
+    set_place_for_every_player
+    actor_area 998
+    actor_area_radius 7 /* I think this ensures 3 squares around the temple of heaven */
+}
+create_object MAP_REVEALER { /* so that players can see the temple of heaven */
+    set_place_for_every_player
+    actor_area_to_place_in 999
+}
+create_object HOUSE_I {
+    terrain_to_place_on ROAD
+    number_of_objects 9320
+    actor_area_to_place_in 1008
+    avoid_actor_area 998
+    avoid_actor_area 1001
+    avoid_actor_area 1007
+    min_distance_to_players 4 /* ensures houses are at least a few empty tiles away from monastery, but shouldn't be enough to create a hole. */
+    set_gaia_object_only
+    set_gaia_unconvertible
+}
+create_object HOUSE_I {
+    terrain_to_place_on ROAD
+    number_of_objects 9320
+    actor_area_to_place_in 1010
+    avoid_actor_area 998
+    avoid_actor_area 1001
+    avoid_actor_area 1009
+    min_distance_to_players 5 /* ensures houses are at least a few empty tiles away from monastery, but shouldn't be enough to create a hole. */
+    set_gaia_object_only
+    set_gaia_unconvertible
+}
+if AT_LEAST_LARGE
+    create_object HOUSE_I {
+        terrain_to_place_on ROAD
+        number_of_objects 9320
+        actor_area_to_place_in 1012
+        avoid_actor_area 998
+        avoid_actor_area 1001
+        avoid_actor_area 1011
+        min_distance_to_players 5 /* ensures houses are at least a few empty tiles away from monastery, but shouldn't be enough to create a hole. */
+        set_gaia_object_only
+        set_gaia_unconvertible
+    }
+endif
+if LUDIKRIS_MAP
+    create_object HOUSE_I {
+        terrain_to_place_on ROAD
+        number_of_objects 9320
+        actor_area_to_place_in 1014
+        avoid_actor_area 998
+        avoid_actor_area 1001
+        avoid_actor_area 1013
+        min_distance_to_players 5 /* ensures houses are at least a few empty tiles away from monastery, but shouldn't be enough to create a hole. */
+        set_gaia_object_only
+        set_gaia_unconvertible
+    }
+endif
+
+/* City contains lots of relics. I counted 36 total relics in the city once, though I may have miscounted. It also might be possible that some relics won't place, though I haven't checked this.  */
+create_object RELIC {
+    terrain_to_place_on ROAD
+    set_place_for_every_player
+    set_gaia_object_only
+    min_distance_to_players 4
+    max_distance_to_players 8
+    min_distance_group_placement 3
+    number_of_groups 4
+}
+
+create_object RELIC {
+    terrain_to_place_on ROAD
+    set_gaia_object_only
+    temp_min_distance_group_placement 11
+    min_distance_to_players 6
+    min_distance_group_placement 5
+    number_of_groups 10
+    set_scaling_to_map_size
+}
+/* create a bit of variation in relic distances */
+create_object RELIC {
+    terrain_to_place_on ROAD
+    set_gaia_object_only
+    min_distance_group_placement 5
+    min_distance_to_players 6
+    number_of_groups 10
+    set_scaling_to_map_size
+} 
+
+/* need temporary placeholder objects due to the ring of water and the fact that the player lands are actually in the center where the monastery is placed. ON_GRID has a bug with it appearing if it is on the very edge of the map, but OFF_GRID works just fine in this case */
+/* experiment to attempt to force the trade carts to start a minimal distance apart. No fix yet, though.
+create_object FLAG_A {
+    set_place_for_every_player
+    avoid_actor_area 1000
+    find_closest /* keeps players reasonably concurrent with their own monastery */
+    actor_area -2
+    actor_area_radius 10
+    avoid_forest_zone 4
+    avoid_actor_area -2
+}
+create_object FLAG_B {
+    set_place_for_every_player
+    avoid_actor_area 1000
+    find_closest /* keeps players reasonably concurrent with their own monastery */
+    actor_area -1
+    actor_area_radius 0
+    actor_area_to_place_in -2
+} */
+/* place trade cart, which is the effective player start location */
+#const OX_CART 1271
+#const PACKED_TC 444
+create_object OFF_GRID {
+    /* second_object TRADE_CART */
+    /* second_object OX_CART */
+    second_object PACKED_TC
+    set_place_for_every_player
+    avoid_actor_area 1000
+    find_closest /* keeps players reasonably concurrent with their own monastery */
+    actor_area 1
+    actor_area_radius 0
+    avoid_forest_zone 4
+    avoid_actor_area 1 
+}
+/* create additional actor areas */
+create_object OFF_GRID { 
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 3
+    actor_area_radius 3
+}
+create_object OFF_GRID {
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 4
+    actor_area_radius 4
+}
+create_object OFF_GRID { 
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 5
+    actor_area_radius 5
+}
+create_object OFF_GRID { 
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 6
+    actor_area_radius 6
+}
+create_object OFF_GRID { 
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 12
+    actor_area_radius 12
+}
+/* for placing gold mines */
+create_object OFF_GRID { 
+    set_place_for_every_player
+    actor_area_to_place_in 1
+    actor_area 35
+    actor_area_radius 35
+} 
+/* create monk carrying a relic */
+create_object ON_GRID {
+    second_object RELIC_PRIEST
+    set_place_for_every_player
+    find_closest /* ensures the priest is the closest to the monastery */
+    actor_area_to_place_in 6 /* monk leads the procession, so he gets a slightly larger actor area */
+    min_distance_group_placement 1
+    avoid_forest_zone 1
+}
+/* Create 3 villagers */
+create_object OFF_GRID {
+    second_object VILLAGER
+    number_of_objects 3
+    set_place_for_every_player
+    actor_area_to_place_in 5
+    avoid_actor_area 3
+    temp_min_distance_group_placement 2 /* larger values can potentially lose a villager */
+    avoid_forest_zone 1
+} 
+/* player sheep */
+create_object OFF_GRID {
+    second_object SHEEP
+    set_place_for_every_player
+    actor_area_to_place_in 3
+    avoid_actor_area 1 /* don't place on trade cart */
+    if TINY_MAP
+        number_of_objects 4
+    elseif SMALL_MAP
+        number_of_objects 4
+    elseif MEDIUM_MAP
+        number_of_objects 5
+    elseif LARGE_MAP
+        number_of_objects 6
+    elseif HUGE_MAP
+        number_of_objects 6
+    elseif GIGANTIC_MAP
+        number_of_objects 7
+    elseif LUDIKRIS_MAP
+        number_of_objects 11 
+    endif
+    avoid_forest_zone 1
+}
+
+/* place fish */
+create_object SALMON {
+    number_of_objects 8
+    set_scaling_to_map_size
+    temp_min_distance_group_placement 9
+    min_distance_group_placement 3
+    max_distance_to_other_zones 2
+}
+create_object SHORE_FISH {
+    number_of_objects 20
+    set_scaling_to_map_size
+    temp_min_distance_group_placement 6
+    min_distance_group_placement 3
+}
+create_object SALMON {
+    number_of_objects 16
+    set_scaling_to_map_size
+    temp_min_distance_group_placement 4
+    min_distance_group_placement 2
+    max_distance_to_other_zones 2
+}
+
+/* Gold mines are very scarce and start far from the player's start locations. At only one gold mine per group, they don't contain much gold either. Players will need to capture the relics contained in the city if they wish to keep gathering gold. */
+create_object GOLD {
+    terrain_to_place_on GRASS2
+    set_gaia_object_only
+    avoid_forest_zone 1
+    min_distance_group_placement 2
+    temp_min_distance_group_placement 31 /* gold mines far away from each other */
+    set_scaling_to_player_number
+    number_of_groups 4
+    avoid_actor_area 35 /* adjust for different map sizes */
+    max_distance_to_other_zones 9
+}  
+
+
+/* straggler trees */
+if PINE_TREES
+    create_object PINE_FOREST_TREE {
+        terrain_to_place_on GRASS2
+        number_of_objects 9320
+        temp_min_distance_group_placement 20
+    }
+elseif OAK_TREES
+    create_object OAKTREE {
+        terrain_to_place_on GRASS2
+        number_of_objects 9320
+        temp_min_distance_group_placement 20
+    }
+endif
+
+/* Stone mines for players to mine */
+create_object STONE {
+    terrain_to_place_on GRASS2
+    number_of_objects 3
+    number_of_groups 5
+    temp_min_distance_group_placement 29
+    min_distance_group_placement 3
+    set_scaling_to_map_size
+    set_tight_grouping
+    avoid_actor_area 12
+    avoid_forest_zone 2
+    max_distance_to_other_zones 2
+}
+create_object DEER {
+    terrain_to_place_on GRASS2
+    number_of_objects 4
+    number_of_groups 6
+    group_variance 1
+    set_scaling_to_map_size
+    temp_min_distance_group_placement 20
+    min_distance_group_placement 2
+    avoid_actor_area 12
+    max_distance_to_other_zones 1
+    avoid_forest_zone 1
+}
+create_object FORAGE {
+    terrain_to_place_on GRASS2
+    number_of_groups 6
+    number_of_objects 6
+    group_variance 2
+    set_tight_grouping
+    set_scaling_to_map_size
+    temp_min_distance_group_placement 25
+    min_distance_group_placement 3
+    avoid_actor_area 12
+    max_distance_to_other_zones 2
+    avoid_forest_zone 2
+}
+create_object BOAR {
+    terrain_to_place_on GRASS2
+    number_of_groups 6
+    set_scaling_to_map_size
+    avoid_actor_area 12
+    temp_min_distance_group_placement 20
+    min_distance_group_placement 2
+    max_distance_to_other_zones 1
+    avoid_forest_zone 1
+
+}
+create_object SHEEP {
+    terrain_to_place_on GRASS2
+    number_of_objects 4
+    number_of_groups 6
+    group_variance 1
+    set_scaling_to_map_size
+    avoid_actor_area 12
+    temp_min_distance_group_placement 24
+    min_distance_group_placement 2
+    max_distance_to_other_zones 1
+    avoid_forest_zone 1
+}
+

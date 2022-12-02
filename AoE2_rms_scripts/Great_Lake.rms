@@ -1,0 +1,786 @@
+/* 
+Title: Great Lake
+Author: Jasuni
+Version: 1.1
+date: July 29, 2021
+updated: 18 Apr 2022
+map info: A large, shallow lake takes up a quarter of the map, hiding many treasures and an island far from the shore. Each team starts on their own land, separated from their opponents by a wide, shallow river that units can wade across. Clumps of trees are scattered around, and crocodiles lurk in the shallows.
+
+note: This map is intended for games with two teams/individual players. Balance is not guaranteed for games with more than two teams, though any team configuration may be played.
+
+not possible to move relic/monument for capture the relic/king of the hill (otherwise I'd move it to the south island)
+
+TODO 2v2v2 likely deserves special attention to balance it. 2v3v2 might deserve special attention as well, though that would take more effort
+TODO map could use a bit more variety in appearance (desert is too monotonous: add different forest types and terrain mixing - possibly a savannah overlay)
+Relics: spread out more evenly, or all on island
+landmass sometimes divides unfairly (should be a hard fix, though)
+large number of predators bad for professional play (lose vils left and right)
+
+changes made:
+changed how relics were generated on the small island, so that they scale differently. Also a bug fix to ensure there's at least a small distance between them and any relics on the lake
+
+*/
+<PLAYER_SETUP>
+direct_placement
+behavior_version 1
+ai_info_map_type CRATER_LAKE 0 0 1 /* map similar to BALTIC, continental, crater lake, and mediterranean, but not really enough to say that it plays the same as any of them.  */
+<LAND_GENERATION>
+base_terrain DLC_NEWSHALLOW
+
+create_land {
+    terrain_type DLC_SAVANNAH
+    if KING_OT_HILL 
+        land_percent 4
+    else
+        land_percent 3
+    endif
+    top_border 80
+    right_border 80
+    zone 9
+}
+create_land {
+    terrain_type WATER
+    land_percent 22
+    top_border 50
+    right_border 50
+    bottom_border -10
+    zone 9
+    other_zone_avoidance_distance 10
+    land_position 35 65
+}
+/* Create player lands */
+if 0_TEAM_GAME
+	if 2_PLAYER_GAME
+		create_land { land_position 40 20  assign_to AT_TEAM -10 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 80 60 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	elseif 3_PLAYER_GAME
+		/* top and right borders added to limit the amount the sides can encroach on the center */
+		create_land { land_position 30 20  assign_to AT_TEAM -10 0 0 land_percent 40 right_border 40 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 20  assign_to AT_TEAM -10 0 0 land_percent 40 left_border 49 bottom_border 49 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 70  assign_to AT_TEAM -10 0 0 land_percent 40 left_border 50 top_border 40 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+	elseif 4_PLAYER_GAME
+		/* madlands attributes:  land_percent 20 _border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 
+		assign_to AT_TEAM -10 0 0
+		20 20 	80 45	80 80	55 20
+		top and right borders added manually
+		*/
+		create_land { land_position 20 20  assign_to AT_TEAM -10 0 0 land_percent 22 bottom_border 50 right_border 60 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 45  assign_to AT_TEAM -10 0 0 land_percent 22 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 80  assign_to AT_TEAM -10 0 0 land_percent 22 left_border 50 top_border 60 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 55 20  assign_to AT_TEAM -10 0 0 land_percent 22 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+	elseif 5_PLAYER_GAME
+		/* madlands:
+		 land_percent 20 _border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11
+		Remember to correct the borders: bottom for first 3, left for last 3.
+		15 20	45 20	80 20	80 55	80 85
+		*/
+		create_land { land_position 15 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 45 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 55  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+
+	elseif 6_PLAYER_GAME
+		/* madlands:  land_percent 20 _border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11
+		15	20
+		40	20
+		65	20
+		80	35
+		80	60
+		80	85
+		Remember bottom/left borders
+		*/
+		create_land { land_position 15 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 40 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 65 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 35  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 60  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+
+	elseif 7_PLAYER_GAME
+	/* madlands
+	15	20		35	20		55	20		80	20		80	45		80	65		80	85
+	 land_percent 20 _border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11
+	remember bottom/left borders
+	*/
+		create_land { land_position 15 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 35 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 55 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 20  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 45  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 65  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+	elseif 8_PLAYER_GAME
+	/* madlands: same as above
+		15	20
+		30	20
+		45	20
+		60	20
+		80	40
+		80	55
+		80	70
+		80	85 */
+		create_land { land_position 15 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 30 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 45 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 60 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 40  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 55  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 70  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+
+	endif
+	/* TODO change the if statement for 2-player games here - it is currently set for the wrong team
+	 TODO also enable to handle more than 4 on a team */
+else
+	/* note: puts team one on left side, assumes that the remainder fits on the right side. if there are more than 2 teams, a player could potentially end up between players of a different team. However, I don't think that this is worth the time it would take to address this. The first team will always be together, without any players in the middle of them. 
+	Set up the first team, then either indicates the size of the second team, or (if irregular behavior is needed) sets up the second team.
+	Irregular setups are needed for 6v2 and 7v1 - all other cases use the generic setup */
+	if TEAM1_SIZE2
+		if 3_PLAYER_GAME
+			#define V1
+		elseif 4_PLAYER_GAME
+			#define V2
+		elseif 5_PLAYER_GAME
+			#define V3
+		elseif 6_PLAYER_GAME
+			#define V4
+		elseif 7_PLAYER_GAME
+			#define V5
+		elseif 8_PLAYER_GAME /* better be an 8-player game at this point - is guaranteed */
+			#define V6
+		endif
+		if V6 /* set up in positions of 8-player FFA */
+			create_land { land_position 15 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 30 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		else
+			create_land { land_position 20 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 50 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		endif
+	elseif TEAM1_SIZE3
+		if 4_PLAYER_GAME
+			#define V1
+		elseif 5_PLAYER_GAME
+			#define V2
+		elseif 6_PLAYER_GAME
+			#define V3
+		elseif 7_PLAYER_GAME
+			#define V4
+		elseif 8_PLAYER_GAME
+			#define V5 
+		endif
+		create_land { land_position 20 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 40 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 60 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	elseif TEAM1_SIZE4
+		if 5_PLAYER_GAME
+			#define V1
+		elseif 6_PLAYER_GAME
+			#define V2
+		elseif 7_PLAYER_GAME
+			#define V3
+		elseif 8_PLAYER_GAME
+			#define V4
+		endif
+		create_land { land_position 15 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 30 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 45 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 60 20  assign_to AT_TEAM 1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	else
+		if TEAM1_SIZE5
+			create_land { land_position 15 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 30 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 45 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 60 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			/* The regular positions should work fine in this case */
+			if 6_PLAYER_GAME
+				#define V1 
+			elseif 7_PLAYER_GAME
+				#define V2
+			else /* 8 player game */
+				#define V3
+			endif
+		elseif TEAM1_SIZE6
+			create_land { land_position 15 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 30 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 45 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 60 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 40  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			if 7_PLAYER_GAME
+				#define V1 /* lone player gets a larger area, but will likely need that anyways */
+			else /* 8 players */
+				create_land { land_position 80 60  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+				create_land { land_position 80 80  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+				/* need special behavior here: regular two-team locations won't work, so using the positions for a 7-player FFA for the remaining two spots */
+			endif
+		elseif TEAM1_SIZE7
+			/* copied from 8-player FFA, but altered team assignments and moved the first land to the 7th creation spot - the last two assignments are both random, as they are both adjacent to only one player from team 1, so it doesn't matter which of the two remaining players gets which spot. defining V1 isn't needed as the 8th player already has their location defined  */
+			create_land { land_position 30 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 45 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 60 20  assign_to AT_TEAM 1 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 40  assign_to AT_TEAM 1 0 0 land_percent 20 left_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 55  assign_to AT_TEAM 1 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 70  assign_to AT_TEAM 1 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 15 20  assign_to AT_TEAM -10 0 0 land_percent 20 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+			create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 20 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team clumping_factor 11 }
+		endif
+	endif
+	/* set team 2 */
+	if V1
+		create_land { land_position 80 60  assign_to AT_TEAM -1 0 0  land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	elseif V2
+		create_land { land_position 80 80  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		create_land { land_position 80 50  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	elseif V3
+		create_land { land_position 80 40  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		if TEAM2_SIZE2
+			create_land { land_position 80 60  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		else
+			create_land { land_position 80 60  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		endif
+		create_land { land_position 80 80  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+	elseif V4
+		if TEAM2_SIZE2
+			if 3_TEAM_GAME /* 2 teams of two */
+				create_land { land_position 80 80 assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65 assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50 assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35 assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			else /* two individual players and a team of two */
+				create_land { land_position 80 80 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50 assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35 assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			endif
+		elseif TEAM2_SIZE3
+			create_land { land_position 80 65  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 35  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 80 assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			/* edge positions assigned last, so that the individual player has a 50% chance of being in the corner, and 50% chance of being in the middle */
+		else /* four individual players */
+			create_land { land_position 80 80 assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 65  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 50  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 35  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		endif
+	elseif V5
+		if 3_TEAM_GAME
+			if TEAM2_SIZE2
+				create_land { land_position 80 80 assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE3
+				create_land { land_position 80 80 assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			endif
+		elseif 2_TEAM_GAME
+			if TEAM2_SIZE2
+				create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 80 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE3
+				create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 80 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE4
+				create_land { land_position 80 65  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 80 assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			else TEAM2_SIZE5
+				create_land { land_position 80 80 assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 65  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			endif
+		else
+			create_land { land_position 80 80 assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 65  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 50  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 35  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		endif
+	elseif V6 /* team 1 is two players located at: 15 20	30 20 */
+		if 4_TEAM_GAME /* 2v2v2v2 */
+			create_land { land_position 50 20  assign_to AT_TEAM 2 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 65 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 35  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 50  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 70  assign_to AT_TEAM 4 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 85  assign_to AT_TEAM 4 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		elseif 3_TEAM_GAME
+			if TEAM2_SIZE2
+				if TEAM3_SIZE2 /* 2v2v2v1v1 */
+					create_land { land_position 50 20  assign_to AT_TEAM 2 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 65 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 35  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 50  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 70  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }				
+				elseif TEAM3_SIZE3 /* 2v2v3v1 */
+					create_land { land_position 50 20  assign_to AT_TEAM 2 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 65 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 50  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 70  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					/* These next two spots are adjacent to a three-player team member, and only the third member of that team and the lone player remain unassigned. */
+					create_land { land_position 80 35  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }			
+				else /* 2v2v4 */
+					create_land { land_position 50 20  assign_to AT_TEAM 3 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 65 20  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 35  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 50  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 85  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				endif
+			elseif TEAM2_SIZE3
+				if TEAM3_SIZE3 /* 2v3v3 */
+					create_land { land_position 50 20  assign_to AT_TEAM 2 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 65 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 50  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 70  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 85  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }					
+				else /* 2v3v2v1 */
+					create_land { land_position 50 20  assign_to AT_TEAM 3 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 65 20  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					/* These next two spots are adjacent to a three-player team member, and only the third member of that team and the lone player remain unassigned. */
+					create_land { land_position 80 35  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+					create_land { land_position 80 85  assign_to AT_TEAM -10 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				endif
+			else /* 2v4v2 */
+				create_land { land_position 50 20  assign_to AT_TEAM 2 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 65 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 35  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 50  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 70  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM 3 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			endif
+		elseif 2_TEAM_GAME
+			/* TODO V6 */
+			if TEAM2_SIZE2 /* 2v2v1v1v1v1 Y */
+				create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 40  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 55  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE3 /* 2v3v1v1v1 Y */
+				create_land { land_position 80 55  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 45 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 40  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE4 /* 2v4v1v1 Y */
+				create_land { land_position 80 40  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 55  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE5 /* 2v5v1 Y */
+				create_land { land_position 80 20  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 40  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 55  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 70  assign_to AT_TEAM 2 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			elseif TEAM2_SIZE6 /* 2v6 Y */
+				create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 40  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 55  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 70  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+				create_land { land_position 80 85  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			endif /* bug if hits here */
+		else /* remaining players all on own team */
+			create_land { land_position 60 20  assign_to AT_TEAM -1 0 0 land_percent 50 bottom_border 50 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 20  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 40  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 55  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 70  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+			create_land { land_position 80 85  assign_to AT_TEAM -1 0 0 land_percent 50 left_border 50 bottom_border -10 other_zone_avoidance_distance 10 terrain_type DESERT set_zone_by_team }
+		endif
+	endif
+endif
+
+<ELEVATION_GENERATION>
+create_elevation 5 {
+	base_terrain DESERT
+	number_of_clumps 14
+	set_scale_by_groups 
+	number_of_tiles 320
+	create_balanced_elevation
+}
+create_elevation 1 {
+	base_terrain DLC_SAVANNAH
+	number_of_clumps 2
+	set_scale_by_groups
+	number_of_tiles 10
+	create_balanced_elevation
+}
+
+
+<TERRAIN_GENERATION>
+#const SHALLOW_REEDS 90
+/* In some instances, land generation might leave a large unintended shallow patch. This fixes that. It is a bit blocky, but works well enough. */
+create_terrain GRASS3 { 
+    base_terrain DLC_NEWSHALLOW
+    spacing_to_other_terrain_types 10
+    land_percent 100
+    number_of_clumps 9
+}
+create_terrain DESERT {
+    base_terrain GRASS3
+    land_percent 100
+    number_of_clumps 99
+}
+/* create forests */
+create_terrain PALM_DESERT {
+    base_terrain DESERT
+    set_scale_by_groups
+    number_of_clumps 99
+    land_percent 10
+    spacing_to_other_terrain_types 2
+    set_avoid_player_start_areas
+}
+/* Large groups of reeds */
+create_terrain SHALLOW_REEDS { 
+    base_terrain DLC_NEWSHALLOW 
+    set_scale_by_size
+    number_of_clumps 19
+    land_percent 1
+    spacing_to_other_terrain_types 3
+}
+/* small groups - currently too many reeds, which is less than ideal */
+create_terrain SHALLOW_REEDS { 
+    base_terrain DLC_NEWSHALLOW 
+    set_scale_by_groups
+    set_avoid_player_start_areas
+    number_of_clumps 50
+    land_percent 1
+}
+/* on small island */
+create_terrain DLC_ACACIAFOREST {
+    base_terrain DLC_SAVANNAH
+    land_percent 1
+    number_of_clumps 9
+}
+create_terrain SHALLOW {
+	base_terrain WATER
+	land_percent 2
+	number_of_clumps 25
+	spacing_to_other_terrain_types 3
+}
+
+<OBJECTS_GENERATION> 
+create_object TOWN_CENTER {
+	set_place_for_every_player
+	min_distance_to_players 0
+	max_distance_to_players 0
+	actor_area 1
+	actor_area_radius 13
+}
+create_object VILLAGER { /* number automatically adjusted */
+	set_place_for_every_player
+	min_distance_to_players 6
+	max_distance_to_players 6
+}
+create_object SCOUT { /* auto-replaced by eagles */
+	set_place_for_every_player
+	min_distance_to_players 7
+	max_distance_to_players 9
+}
+if DEATH_MATCH
+else
+create_object DLC_GOAT /* primary */ {
+	number_of_objects 4
+	set_loose_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 9
+	max_distance_to_players 11
+}
+create_object DLC_GOAT /* secondary */ {
+	number_of_objects 2
+	number_of_groups 2
+	set_loose_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 14
+	max_distance_to_players 30
+}
+create_object FORAGE {
+	number_of_objects 6
+	set_tight_grouping
+	group_placement_radius 4
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 10
+	max_distance_to_players 12
+	min_distance_group_placement 6
+	max_distance_to_other_zones 7
+	avoid_forest_zone 1
+	avoid_cliff_zone 1
+}
+create_object DLC_RHINO {
+	number_of_objects 2
+	set_place_for_every_player
+	set_gaia_object_only
+	min_distance_to_players 16
+	max_distance_to_players 22
+	avoid_forest_zone 1
+	avoid_cliff_zone 1
+}
+create_object DLC_ZEBRA {
+	number_of_objects 4
+	set_place_for_every_player
+	set_gaia_object_only
+	set_loose_grouping
+	min_distance_to_players 18
+	max_distance_to_players 24
+	avoid_forest_zone 1
+	avoid_cliff_zone 1
+}
+create_object PALMTREE {
+	number_of_objects 2
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 4
+	max_distance_to_players 5
+	min_distance_group_placement 2
+}
+create_object PALMTREE {
+	number_of_objects 3
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 6
+	max_distance_to_players 8
+	min_distance_group_placement 2
+}
+
+endif
+create_object GOLD { /* Primary */ 
+	number_of_objects 6
+	set_place_for_every_player
+	set_gaia_object_only
+	set_tight_grouping
+	min_distance_to_players 14
+	max_distance_to_players 18
+	min_distance_group_placement 6
+	avoid_forest_zone
+}
+create_object STONE { /* Primary */ 
+	number_of_objects 3
+	set_place_for_every_player
+	set_gaia_object_only
+	set_tight_grouping
+	min_distance_to_players 14
+	max_distance_to_players 18
+	min_distance_group_placement 6
+	avoid_forest_zone
+}
+create_object GOLD { /* secondary */
+	number_of_objects 4
+	set_place_for_every_player
+	set_gaia_object_only
+	set_tight_grouping
+	min_distance_to_players 16
+	max_distance_to_players 26
+	min_distance_group_placement 6
+	avoid_forest_zone
+}
+create_object STONE { /* secondary */
+	number_of_objects 1
+	set_place_for_every_player
+	set_gaia_object_only
+	min_distance_to_players 16
+	max_distance_to_players 26
+	avoid_forest_zone
+	temp_min_distance_group_placement 10
+	/* no min_distance_group_placement - with how poor this stone is, it may as well be allowed to join tertiary stone/gold piles */
+}
+create_object DLC_WATERBUFFALO {
+	number_of_objects 3
+	number_of_groups 4
+	group_variance 1
+	set_loose_grouping
+	set_gaia_object_only
+	avoid_actor_area 1
+	set_scaling_to_map_size
+}
+create_object DLC_OSTRICH {
+    number_of_objects 3
+    number_of_groups 4
+    group_variance 2
+    set_scaling_to_map_size
+    set_loose_grouping
+	avoid_actor_area 1
+    avoid_forest_zone 1
+}
+create_object DLC_ELEPHANT {
+    number_of_objects 4
+    set_scaling_to_map_size
+	avoid_actor_area 1
+    temp_min_distance_group_placement 10
+    terrain_to_place_on DESERT
+}
+create_object DLC_OSTRICH { /* Ostrich for the southern island */
+    number_of_objects 3
+    number_of_groups 1
+    group_variance 2
+    set_scaling_to_map_size
+    set_loose_grouping
+    terrain_to_place_on DLC_SAVANNAH
+}
+create_object DLC_LION {
+	number_of_objects 3
+	set_place_for_every_player
+	set_gaia_object_only
+	min_distance_to_players 30
+	max_distance_to_players 40
+	temp_min_distance_group_placement 10
+}
+create_object GOLD { /* tertiary */
+	number_of_groups 3
+	number_of_objects 3
+	group_variance 2
+	set_scaling_to_map_size
+	set_tight_grouping
+	avoid_actor_area 1
+	min_distance_group_placement 2
+	temp_min_distance_group_placement 9
+	avoid_forest_zone 1
+}
+create_object STONE {
+	number_of_groups 6
+	number_of_objects 4
+	group_variance 3
+	set_scaling_to_map_size
+	set_tight_grouping
+	avoid_actor_area 1
+	min_distance_group_placement 2
+	temp_min_distance_group_placement 10
+	avoid_forest_zone 1
+}
+create_object DLC_CROCODILE {
+    number_of_objects 10
+    set_gaia_object_only
+    set_scaling_to_map_size
+    terrain_to_place_on DLC_NEWSHALLOW
+    temp_min_distance_group_placement 10
+	avoid_actor_area 1
+}
+/* Create Salmon that can appear in any water */
+create_object MARLIN1 {
+	number_of_objects 12
+	min_distance_group_placement 6
+	set_scaling_to_map_size
+	resource_delta -350
+	second_object SALMON
+	avoid_forest_zone 1 /* keep salmon from spawning underneath reeds */
+	avoid_actor_area 1 /* keep from being too close to player start areas */
+} 
+/* These salmon will only appear in the lake, as they cannot be placed in shallows */ 
+create_object SALMON {
+	number_of_objects 6
+	temp_min_distance_group_placement 6
+	set_scaling_to_map_size
+}  
+create_object SHORE_FISH {
+    number_of_objects 999
+    set_gaia_object_only
+    temp_min_distance_group_placement 10
+    min_distance_group_placement 3
+}
+
+if CAPTURE_THE_RELIC 
+    create_object RELIC {
+        number_of_objects 1
+        terrain_to_place_on DLC_SAVANNAH /* island on the bottom - will need to test this */
+    }
+else
+    create_object RELIC {
+        number_of_objects 2
+		temp_min_distance_group_placement 28
+        set_scaling_to_map_size
+        terrain_to_place_on SHALLOW 
+        actor_area 2
+		actor_area_radius 9
+    }
+    create_object RELIC {
+		/* 1 below standard resources, due to the relics on the lake */
+        if TINY_MAP
+			number_of_objects 4
+        	temp_min_distance_group_placement 9
+		elseif SMALL_MAP
+			number_of_objects 4
+        	temp_min_distance_group_placement 10
+		elseif MEDIUM_MAP
+			number_of_objects 4
+        	temp_min_distance_group_placement 11
+		elseif LARGE_MAP
+			number_of_objects 6
+        	temp_min_distance_group_placement 13 /* a touch on the high side, but it is possible for all 6 to spawn */
+		elseif HUGE_MAP
+			number_of_objects 7
+        	temp_min_distance_group_placement 15
+		elseif GIGANTIC_MAP
+			number_of_objects 14 /* not likely to get above 5, it seems */
+        	temp_min_distance_group_placement 17
+		else /* LUDIKRIS_MAP */
+			number_of_objects 28 /* I've seen 7 */
+        	temp_min_distance_group_placement 31
+		endif
+        /* there isn't always enough space for all the relics, but a little variability is acceptable, as there tend to be extra relics anyways. On the larger map sizes, the number of relics on the lake can get somewhat large */
+        terrain_to_place_on DLC_SAVANNAH
+		avoid_actor_area 2
+    }
+endif
+/* add more fish?
+FISH/FISH_PERCH
+DORADO
+ */
+
+if REGICIDE /* regicide objects */
+create_object VILLAGER
+{
+	number_of_objects 7
+	set_place_for_every_player
+	min_distance_to_players 6
+	max_distance_to_players 6
+}
+create_object KING
+{
+	set_place_for_every_player
+	min_distance_to_players 6
+	find_closest
+}
+create_object CASTLE
+{
+	set_place_for_every_player
+	min_distance_to_players 10
+	max_distance_to_players 10
+}
+endif
+/*
+support KING_OT_HILL, CAPTURE_THE_RELIC
+*/
+

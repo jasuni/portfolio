@@ -1,0 +1,774 @@
+/* 
+Title: Whirlpool Island
+Author: Jasuni
+version: 1.3
+updated: 18 Apr 2022
+map info: island in a whirlpool - players start on their own islands outside the whirlpool, but will need to move to the magical island in the middle of the map. The island has jungles, plenty of food, jaguars, and some barbarians (hostile milita) - Relics are plenteous, with two on each starting island and more in the middle island. The waters are filled with plenty of fish. 
+
+
+updates:
+added a mode for tournament balance (removes the barbarians)
+changed aesthetics
+reduced number of relics on mainland
+ensured gold/stone piles on mainland are farther apart from each other
+changed resource generation significantly: mainland now has fewer resources, especially on larger map sizes. Resources will also spread out better and scale better. It will also be more consistent, with less variation between groups of the same resource.
+
+TODO:
+create more fairness in the clearing spawns on the mainland:
+in regicide, change the fortified tower to spawn as close to center as possible
+
+
+
+
+*/
+/* removes barbarians
+#define TOURNAMENT_BALANCE
+ */
+<PLAYER_SETUP>
+random_placement
+behavior_version 1
+ai_info_map_type MIGRATION 0 0 0
+
+<LAND_GENERATION>
+#const GRASS_JUNGLE 83
+#const UNDERBRUSH_JUNGLE 77
+base_terrain WATER 
+
+create_land {
+	terrain_type DLC_JUNGLEGRASS
+	land_percent 100
+	top_border 24
+	bottom_border 24
+	left_border 24
+	right_border 24
+	zone 1
+	other_zone_avoidance_distance 10
+	land_position 30 50
+}
+create_land {
+	terrain_type DLC_JUNGLEGRASS
+	land_percent 100
+	top_border 24
+	bottom_border 24
+	left_border 24
+	right_border 24
+	zone 1
+	other_zone_avoidance_distance 10
+	land_position 70 50
+}
+create_land {
+	terrain_type DLC_JUNGLEGRASS
+	land_percent 100
+	top_border 24
+	bottom_border 24
+	left_border 24
+	right_border 24
+	zone 1
+	other_zone_avoidance_distance 10
+	land_position 50 70
+}
+create_land {
+	terrain_type DLC_JUNGLEGRASS
+	land_percent 100
+	top_border 24
+	bottom_border 24
+	left_border 24
+	right_border 24
+	zone 1
+	other_zone_avoidance_distance 10
+	land_position 50 30
+}
+create_player_lands {
+	terrain_type SNOW
+	land_percent 100
+    circle_radius 40 4
+	zone 2
+	other_zone_avoidance_distance 7
+	base_elevation 7
+} 
+
+<ELEVATION_GENERATION>
+create_elevation 2 {
+	base_terrain DLC_JUNGLEGRASS
+	number_of_tiles 50
+	number_of_clumps 5
+	set_scale_by_groups
+	enable_balanced_elevation
+}
+
+/* initial: DLC_JUNGLEGRASS in mid, snow on top, water on slopes */
+<TERRAIN_GENERATION>
+create_terrain ICE {
+	base_terrain SNOW
+	land_percent 100
+	number_of_clumps 9320
+	set_avoid_player_start_areas 18
+}
+
+create_terrain WATER {
+	base_terrain ICE
+	land_percent 100
+	number_of_clumps 9320
+}
+create_terrain DIRT3 {
+	base_terrain SNOW
+	land_percent 100
+	number_of_clumps 9320
+} 
+/* ensure there is no snow/ice */ 
+create_terrain LEAVES {
+    base_terrain SNOW
+    land_percent 100
+    number_of_clumps 999
+}
+create_terrain LEAVES {
+    base_terrain ICE
+    land_percent 100
+    number_of_clumps 999
+}
+
+create_terrain UNDERBRUSH_JUNGLE {
+	base_terrain DLC_JUNGLEGRASS
+	land_percent 100
+	spacing_to_other_terrain_types 7
+	terrain_mask 1
+}
+create_terrain DLC_RAINFOREST {
+	base_terrain DLC_JUNGLEGRASS
+	base_layer UNDERBRUSH_JUNGLE
+	land_percent 6
+	number_of_clumps 64
+}
+
+create_terrain DLC_RAINFOREST {
+	base_terrain DLC_JUNGLEGRASS
+	base_layer UNDERBRUSH_JUNGLE
+	land_percent 3
+	spacing_to_other_terrain_types 8
+	number_of_clumps 32
+}
+create_terrain DLC_JUNGLELEAVES {
+	base_terrain DLC_JUNGLEGRASS
+	land_percent 1
+	number_of_clumps 32
+	spacing_to_other_terrain_types 3
+}
+create_terrain DLC_RAINFOREST {
+	base_terrain DLC_JUNGLELEAVES
+	number_of_clumps 128
+	land_percent 100
+}
+create_terrain JUNGLE { 
+	base_terrain DIRT3
+    /* 125 per player, with no scaling for map size, as starting island sizes don't really change */
+    if 2_PLAYER_GAME 
+        number_of_tiles 250
+    elseif 3_PLAYER_GAME
+	    number_of_tiles 375 
+    elseif 4_PLAYER_GAME
+	    number_of_tiles 500 
+    elseif 5_PLAYER_GAME
+	    number_of_tiles 625 
+    elseif 6_PLAYER_GAME
+	    number_of_tiles 750 
+    elseif 7_PLAYER_GAME
+	    number_of_tiles 875 
+    elseif 8_PLAYER_GAME
+	    number_of_tiles 1000 
+    else /* 1-player game */
+	    number_of_tiles 125
+    endif
+    /* ludikrus map size will need a smaller number of tiles */
+	number_of_clumps 32  /* high number to ensure that each player has some wood to chop */ 
+	set_avoid_player_start_areas 9
+}
+create_terrain DLC_RAINFOREST { 
+	base_terrain DIRT3
+    /* 10 per player, with no scaling for map size - pretty much a neglible amount */
+    if 2_PLAYER_GAME 
+        number_of_tiles 10
+    elseif 3_PLAYER_GAME
+	    number_of_tiles 15 
+    elseif 4_PLAYER_GAME
+	    number_of_tiles 20 
+    elseif 5_PLAYER_GAME
+	    number_of_tiles 25 
+    elseif 6_PLAYER_GAME
+	    number_of_tiles 30 
+    elseif 7_PLAYER_GAME
+	    number_of_tiles 35 
+    elseif 8_PLAYER_GAME
+	    number_of_tiles 40 
+    else /* 1-player game */
+	    number_of_tiles 5
+    endif
+    /* ludikrus map size will need a smaller number of tiles */
+	number_of_clumps 16  /* high number to ensure that each player has some wood to chop */ 
+	set_avoid_player_start_areas 8
+}
+/*
+create_terrain UNDERBRUSH_JUNGLE {
+    base_terrain DLC_JUNGLEGRASS
+    terrain_mask 1
+    land_percent 4
+    number_of_clumps 99
+}
+*/
+create_terrain GRASS_JUNGLE {
+    base_terrain DLC_JUNGLEGRASS
+    terrain_mask 1
+    land_percent 4
+    number_of_clumps 99
+}
+create_terrain DLC_JUNGLELEAVES { /* takes over appearance fully */
+    base_terrain DLC_JUNGLEGRASS
+    terrain_mask 1
+    land_percent 3
+    number_of_clumps 99
+}
+create_terrain LEAVES { 
+    base_terrain DLC_JUNGLEGRASS
+    terrain_mask 1
+    land_percent 1
+    number_of_clumps 99
+}
+
+/* 
+Underbrush, Jungle - 77 - makes an interesting appearance
+Grass, Jungle - 83 - would be great for terrain mixing, but not as a stand-alone
+ */
+create_terrain GRASS_JUNGLE {
+    base_terrain DIRT3
+    terrain_mask 1
+    if 2_PLAYER_GAME 
+        number_of_tiles 250
+    elseif 3_PLAYER_GAME
+	    number_of_tiles 375 
+    elseif 4_PLAYER_GAME
+	    number_of_tiles 500 
+    elseif 5_PLAYER_GAME
+	    number_of_tiles 625 
+    elseif 6_PLAYER_GAME
+	    number_of_tiles 750 
+    elseif 7_PLAYER_GAME
+	    number_of_tiles 875 
+    elseif 8_PLAYER_GAME
+	    number_of_tiles 1000 
+    else /* 1-player game */
+	    number_of_tiles 125
+    endif
+    number_of_clumps 32
+} 
+create_terrain DLC_JUNGLEGRASS {
+    base_terrain DIRT3
+    terrain_mask 1
+    if 2_PLAYER_GAME 
+        number_of_tiles 250
+    elseif 3_PLAYER_GAME
+	    number_of_tiles 375 
+    elseif 4_PLAYER_GAME
+	    number_of_tiles 500 
+    elseif 5_PLAYER_GAME
+	    number_of_tiles 625 
+    elseif 6_PLAYER_GAME
+	    number_of_tiles 750 
+    elseif 7_PLAYER_GAME
+	    number_of_tiles 875 
+    elseif 8_PLAYER_GAME
+	    number_of_tiles 1000 
+    else /* 1-player game */
+	    number_of_tiles 125
+    endif
+    number_of_clumps 32
+} 
+create_terrain UNDERBRUSH_JUNGLE {
+    base_terrain DIRT3
+    terrain_mask 1
+    if 2_PLAYER_GAME 
+        number_of_tiles 100
+    elseif 3_PLAYER_GAME
+	    number_of_tiles 150 
+    elseif 4_PLAYER_GAME
+	    number_of_tiles 200 
+    elseif 5_PLAYER_GAME
+	    number_of_tiles 250 
+    elseif 6_PLAYER_GAME
+	    number_of_tiles 300 
+    elseif 7_PLAYER_GAME
+	    number_of_tiles 350 
+    elseif 8_PLAYER_GAME
+	    number_of_tiles 400 
+    else /* 1-player game */
+	    number_of_tiles 50
+    endif
+    number_of_clumps 32
+} 
+create_terrain GRASS2 {
+    base_terrain DIRT3
+    terrain_mask 1
+	land_percent 100
+    number_of_clumps 32
+} 
+
+<OBJECTS_GENERATION>
+#const TEMP 1613
+#const DOLPHIN 61
+#const ON_GRID 278 
+ /* TODO add some tree clumps for each player */
+create_object TOWN_CENTER {
+	set_place_for_every_player
+	min_distance_to_players 0
+	max_distance_to_players 0
+}
+
+if REGICIDE /* regicide objects */
+	create_object VILLAGER
+	{
+		number_of_objects 7
+		set_place_for_every_player
+		min_distance_to_players 6
+		max_distance_to_players 6
+	}
+	create_object KING
+	{
+		set_place_for_every_player
+		min_distance_to_players 6
+		find_closest
+	}
+	create_object DLC_FORTIFIED_TOWER
+	{
+		set_place_for_every_player
+		min_distance_to_players 10
+		find_closest
+		/* TODO alter to have a max distance only, while seeking to be as close to the center as possible */
+	}
+else
+	create_object VILLAGER { /* number automatically adjusted */
+		set_place_for_every_player
+		min_distance_to_players 6
+		max_distance_to_players 6
+	}
+	create_object SCOUT { /* auto-replaced by eagles */
+		set_place_for_every_player
+		min_distance_to_players 7
+		max_distance_to_players 9
+	}
+endif
+create_object STONE { /* Player stone */
+	number_of_objects 3
+	set_tight_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 11
+	max_distance_to_players 15
+	min_distance_group_placement 2
+    avoid_forest_zone 1
+}
+create_object FORAGE { 
+	number_of_objects 6
+	set_tight_grouping
+	group_placement_radius 4
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 10
+	max_distance_to_players 14
+	min_distance_group_placement 2
+    avoid_forest_zone 1
+}
+create_object GOLD { /* Player gold */
+	number_of_objects 4
+	set_tight_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 11
+	min_distance_group_placement 2
+    avoid_forest_zone 1
+    find_closest
+}
+create_object TURKEY /* primary */ {
+	number_of_objects 4
+	set_loose_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 8
+    avoid_forest_zone 1
+    find_closest
+}
+create_object TURKEY /* secondary */ {
+	number_of_objects 2
+	set_loose_grouping
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 10
+    max_distance_to_players 17
+    avoid_forest_zone 1
+}
+create_object JAVELINA {
+	number_of_objects 1
+	set_place_for_every_player
+	set_gaia_object_only
+	min_distance_to_players 12
+	avoid_forest_zone 1
+    find_closest
+}
+create_object RELIC {
+	number_of_objects 2
+	set_place_for_every_player
+	set_gaia_object_only
+	min_distance_to_players 13
+	max_distance_to_players 22
+	temp_min_distance_group_placement 7
+}
+create_object PALMTREE /* straggler trees */ {
+	number_of_objects 2
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 4
+	max_distance_to_players 5
+	min_distance_group_placement 2
+}
+create_object PALMTREE {
+	number_of_objects 3
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 6
+	max_distance_to_players 8
+	min_distance_group_placement 2
+}
+create_object PALMTREE {
+	number_of_objects 5
+	set_gaia_object_only
+	set_place_for_every_player
+	min_distance_to_players 10
+	max_distance_to_players 18
+}
+
+create_object ON_GRID {
+    number_of_objects 29999
+    terrain_to_place_on DLC_JUNGLEGRASS
+    actor_area 1
+    actor_area_radius 10
+    resource_delta -60
+}
+create_object DOLPHIN {
+	number_of_objects 8
+	set_gaia_object_only
+	min_distance_group_placement 1
+	temp_min_distance_group_placement 9
+	set_scaling_to_map_size
+    avoid_actor_area 1
+}
+create_object MARLIN1 {
+	number_of_objects 12
+	set_gaia_object_only
+	min_distance_group_placement 3
+	temp_min_distance_group_placement 7
+	set_scaling_to_map_size
+    avoid_actor_area 1
+}
+create_object SNAPPER {
+	number_of_objects 12
+	set_gaia_object_only
+	min_distance_group_placement 3
+	temp_min_distance_group_placement 7
+	set_scaling_to_map_size
+    avoid_actor_area 1
+}
+create_object TUNA {
+	number_of_objects 12
+	set_gaia_object_only
+	min_distance_group_placement 3
+	temp_min_distance_group_placement 7
+	set_scaling_to_map_size
+    avoid_actor_area 1
+}
+create_object SALMON {
+	number_of_objects 12
+	set_gaia_object_only
+	min_distance_group_placement 3
+	temp_min_distance_group_placement 7
+	set_scaling_to_map_size
+    avoid_actor_area 1
+}
+create_object DLC_BOXTURTLE {
+	number_of_objects 9320
+	set_gaia_object_only
+	min_distance_group_placement 4
+    temp_min_distance_group_placement 9
+	set_flat_terrain_only
+}
+create_object SHORE_FISH {
+	number_of_objects 9320
+	set_gaia_object_only
+	min_distance_group_placement 4
+    temp_min_distance_group_placement 6
+	set_flat_terrain_only
+}
+create_object GOLD {
+	/*
+	number_of_objects 4
+	number_of_groups 2
+	group_variance 3
+	set_scaling_to_map_size */
+	if TINY_MAP
+		number_of_groups 5
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 22
+	elseif SMALL_MAP
+		number_of_groups 6
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 22
+	elseif MEDIUM_MAP
+		number_of_groups 7
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 25
+	elseif LARGE_MAP
+		number_of_groups 7
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 27
+	elseif HUGE_MAP
+		number_of_groups 8
+		number_of_objects 5
+		group_variance 1
+		temp_min_distance_group_placement 28
+	elseif GIGANTIC_MAP
+		number_of_groups 10
+		number_of_objects 5
+		group_variance 1
+		temp_min_distance_group_placement 29
+	else /* ludicrus */
+		number_of_groups 52
+		number_of_objects 5
+		group_variance 1
+		temp_min_distance_group_placement 47
+	endif
+	set_tight_grouping
+	group_placement_radius 3
+	set_gaia_object_only
+	avoid_forest_zone 1
+	min_distance_group_placement 3
+	terrain_to_place_on DLC_JUNGLEGRASS
+    max_distance_to_other_zones 3
+	actor_area 2
+	if TINY_MAP
+		actor_area_radius 6
+	elseif SMALL_MAP
+		actor_area_radius 6
+	else
+		actor_area_radius 7
+	endif
+}
+create_object STONE {
+	/*
+	number_of_objects 4
+	number_of_groups 4
+	group_variance 3
+	set_scaling_to_map_size
+	*/
+	temp_min_distance_group_placement 17
+	if TINY_MAP
+		number_of_groups 10
+		number_of_objects 3
+		group_variance 1
+	elseif SMALL_MAP
+		number_of_groups 12
+		number_of_objects 3
+		group_variance 1
+	elseif MEDIUM_MAP
+		number_of_groups 14
+		number_of_objects 3
+		group_variance 1
+	elseif LARGE_MAP
+		number_of_groups 14
+		number_of_objects 3
+		group_variance 1
+	elseif HUGE_MAP
+		number_of_groups 16
+		number_of_objects 4
+		group_variance 1
+	elseif GIGANTIC_MAP
+		number_of_groups 20
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 22
+	else /* ludicrus */
+		number_of_groups 104
+		number_of_objects 4
+		group_variance 1
+		temp_min_distance_group_placement 32
+	endif
+	set_tight_grouping
+	group_placement_radius 3
+	set_gaia_object_only
+	avoid_forest_zone 1
+	min_distance_group_placement 3
+	terrain_to_place_on DLC_JUNGLEGRASS
+    max_distance_to_other_zones 3
+	avoid_actor_area 2
+}
+create_object RELIC {
+	if TINY_MAP
+		number_of_objects 5
+		temp_min_distance_group_placement 20
+	elseif SMALL_MAP
+		number_of_objects 5
+		temp_min_distance_group_placement 21
+	elseif MEDIUM_MAP
+		number_of_objects 5
+		temp_min_distance_group_placement 25
+	elseif LARGE_MAP
+		number_of_objects 7
+		temp_min_distance_group_placement 25
+	elseif HUGE_MAP
+		number_of_objects 8
+		temp_min_distance_group_placement 29
+	elseif GIGANTIC_MAP
+		number_of_objects 15
+		temp_min_distance_group_placement 33 /* this appears to be placing about 8 or 9 */
+	else /* ludikrus map */
+		number_of_objects 35
+		temp_min_distance_group_placement 48 /* counted 15 once */
+	endif
+	terrain_to_place_on DLC_JUNGLEGRASS
+	set_gaia_object_only
+	min_distance_group_placement 1
+    max_distance_to_other_zones 1
+}
+/* mainland resources */
+create_object FORAGE { 
+	number_of_objects 8
+	number_of_groups 4
+	group_variance 3
+	set_tight_grouping
+	set_scaling_to_map_size
+	group_placement_radius 3
+	set_gaia_object_only
+	avoid_forest_zone 1
+	if TINY_MAP
+		temp_min_distance_group_placement 15
+	elseif SMALL_MAP
+		temp_min_distance_group_placement 15
+	elseif MEDIUM_MAP
+		temp_min_distance_group_placement 17
+	elseif LARGE_MAP
+		temp_min_distance_group_placement 18
+	elseif HUGE_MAP
+		temp_min_distance_group_placement 19
+	elseif GIGANTIC_MAP
+		temp_min_distance_group_placement 20
+	else /* ludicrus */
+		temp_min_distance_group_placement 30
+	endif
+	min_distance_group_placement 3
+	terrain_to_place_on DLC_JUNGLEGRASS
+    max_distance_to_other_zones 3
+}
+create_object DEER {
+	number_of_objects 5
+	number_of_groups 4
+	set_scaling_to_map_size
+	group_variance 2
+	set_gaia_object_only
+	set_loose_grouping
+	terrain_to_place_on DLC_JUNGLEGRASS
+	avoid_forest_zone 1
+    if TINY_MAP
+		temp_min_distance_group_placement 10
+	elseif SMALL_MAP
+		temp_min_distance_group_placement 10
+	elseif MEDIUM_MAP
+		temp_min_distance_group_placement 11
+	elseif LARGE_MAP
+		temp_min_distance_group_placement 12
+	elseif HUGE_MAP
+		temp_min_distance_group_placement 12
+	elseif GIGANTIC_MAP
+		temp_min_distance_group_placement 13
+	else /* ludicrus */
+		temp_min_distance_group_placement 21
+	endif
+	min_distance_group_placement 3
+    max_distance_to_other_zones 2
+}
+create_object JAVELINA {
+	number_of_objects 2
+	number_of_groups 3
+	set_scaling_to_map_size
+	group_variance 1
+	set_gaia_object_only
+	terrain_to_place_on DLC_JUNGLEGRASS
+	min_distance_group_placement 3
+	temp_min_distance_group_placement 7
+	if TINY_MAP
+		temp_min_distance_group_placement 15
+	elseif SMALL_MAP
+		temp_min_distance_group_placement 15
+	elseif MEDIUM_MAP
+		temp_min_distance_group_placement 17
+	elseif LARGE_MAP
+		temp_min_distance_group_placement 18
+	elseif HUGE_MAP
+		temp_min_distance_group_placement 19
+	elseif GIGANTIC_MAP
+		temp_min_distance_group_placement 20
+	else /* ludicrus */
+		temp_min_distance_group_placement 30
+	endif
+    max_distance_to_other_zones 3
+}
+create_object TURKEY {
+    number_of_objects 4
+    number_of_groups 6
+    group_variance 2
+    set_gaia_object_only
+    set_loose_grouping
+    set_scaling_to_map_size
+    terrain_to_place_on DLC_JUNGLEGRASS
+    min_distance_group_placement 3
+    if TINY_MAP
+		temp_min_distance_group_placement 8
+	elseif SMALL_MAP
+		temp_min_distance_group_placement 8
+	elseif MEDIUM_MAP
+		temp_min_distance_group_placement 9
+	elseif LARGE_MAP
+		temp_min_distance_group_placement 9
+	elseif HUGE_MAP
+		temp_min_distance_group_placement 10
+	elseif GIGANTIC_MAP
+		temp_min_distance_group_placement 11
+	else /* ludicrus */
+		temp_min_distance_group_placement 17
+	endif
+    max_distance_to_other_zones 2
+}
+create_object JAGUAR {
+	number_of_groups rnd(4,8)
+	set_scaling_to_map_size
+	set_gaia_object_only
+	terrain_to_place_on DLC_JUNGLEGRASS
+	min_distance_group_placement 7
+	temp_min_distance_group_placement 30
+    max_distance_to_other_zones 3
+}
+if TOURNAMENT_BALANCE
+else
+	create_object MILITIA {
+		number_of_objects 5
+		number_of_groups 1
+		set_scaling_to_map_size
+		group_variance 4
+		set_gaia_object_only
+		set_gaia_unconvertible
+		set_loose_grouping
+		terrain_to_place_on DLC_JUNGLEGRASS
+		min_distance_group_placement 3
+		temp_min_distance_group_placement 27
+		max_distance_to_other_zones 14
+	}
+endif
+
